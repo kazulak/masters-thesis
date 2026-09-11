@@ -1,5 +1,5 @@
 {
-  "schema": "thesis_final_evaluation_protocol_v1",
+  "schema": "thesis_final_evaluation_protocol_v2",
   "source_commit": "f6b570a98a610d41b5b16401a42ce12a94042d38",
   "source_tree": "98597dfe4db38c49bd4e2cfa127880739e0d5a05",
   "seed": 20260911,
@@ -35,12 +35,10 @@
   "dpu_grid": [
     1,
     2,
-    3,
     4,
     8,
     16,
     32,
-    48,
     64
   ],
   "width_slots": [
@@ -51,8 +49,13 @@
     20,
     22,
     24,
-    26,
-    28
+    26
+  ],
+  "anchor_widths": [
+    8,
+    12,
+    16,
+    18
   ],
   "primary_families": [
     "bb84",
@@ -62,32 +65,24 @@
     "qrng",
     "xor"
   ],
-  "extension_families": [
-    "ghz",
-    "stress"
-  ],
-  "depth_extension_widths": [
-    8,
-    12,
-    16
-  ],
-  "depth_extension_layers": [
-    1,
-    4,
-    8
-  ],
-  "warmups": 2,
-  "resource_measurements": 10,
-  "main_measurements": 15,
+  "extension_families": [],
+  "depth_extension_widths": [],
+  "depth_extension_layers": [],
+  "warmups": 1,
+  "resource_measurements": 5,
+  "ablation_measurements": 7,
   "attempt_timeout_s": 300,
   "planning_timeout_s": 300,
+  "worker_timeout_s": 900,
   "child_address_space_bytes": 34359738368,
   "executor_host_budget_bytes": 8589934592,
   "planning_reference_work_bytes_limit": 12884901888,
   "required_free_memory_bytes": 42949672960,
-  "required_free_storage_bytes": 137438953472,
-  "physical_execution_ceiling": 6500,
-  "all_attempts_ceiling": 11000,
+  "required_free_storage_bytes": 2147483648,
+  "minimum_stage_free_storage_bytes": 536870912,
+  "preferred_free_storage_bytes": 4294967296,
+  "physical_execution_ceiling": 1200,
+  "all_attempts_ceiling": 2000,
   "bootstrap_draws": 10000,
   "validation": {
     "fp32_atol": 1e-05,
@@ -115,7 +110,5 @@
   "primary_CPU_comparison": "job_to_state_s: identical preloaded CircuitSpec to owned contiguous complete statevector; no validation or file serialization",
   "prepared_CPU_comparison": "prepared_call_s; circuit lowering, path search, DAG construction and physical mapping excluded",
   "status": "pre-execution specification; must pass all qualification gates before physical performance measurement",
-  "worker_timeout_s": 900,
-  "minimum_stage_free_storage_bytes": 17179869184,
   "physical_suites_worker_elapsed_ceiling_s": 172800
 }
