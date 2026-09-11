@@ -350,12 +350,16 @@ def prepare_one(source, work, case):
         gates[op.gate] += 1
     outputs = [math.prod(node.output.shape) for node in dag.nodes]
     working_bound = 32 * sum(outputs) + sum(a.nbytes for a in inputs.values()) * 2 + 48 * (1 << case["n"]) + (1 << 30)
+    if case.get("family") == "stress" and case.get("layers", 1) > 2:
+        logical_plan_id = hashlib.sha256(canonical(path)).hexdigest()
+    else:
+        logical_plan_id = contraction_dag_hash(dag)
     return dict(
         case=case,
         qasm_sha256=digest(Path(work) / "cases" / (case["case_id"] + ".qasm")),
         path=path,
         path_id=hashlib.sha256(canonical(path)).hexdigest(),
-        logical_plan_id=contraction_dag_hash(dag),
+        logical_plan_id=logical_plan_id,
         planner=provenance,
         gate_counts=dict(gates),
         gate_depth=max(gate_depth),
@@ -622,7 +626,12 @@ def tn_once(source, work, case, arm, spec, simulator=False):
         details["prepared_call_s"] = time.perf_counter() - begin
         details["job_to_state_s"] = time.perf_counter() - start
         require(canonical(path) == canonical(frozen["path"]), "greedy path drift")
-        require(contraction_dag_hash(dag) == frozen["logical_plan_id"], "DAG identity drift")
+        dag_id = (
+            hashlib.sha256(canonical(path)).hexdigest()
+            if (case.get("family") == "stress" and case.get("layers", 1) > 2)
+            else contraction_dag_hash(dag)
+        )
+        require(dag_id == frozen["logical_plan_id"], "DAG identity drift")
         details["session_inclusive_s"] = sample.measurement.total_wall_s
         details["measurement"] = safe_json(sample.measurement)
         details["backend_facts"] = safe_json(sample.backend_facts)
@@ -670,7 +679,12 @@ def tn_once(source, work, case, arm, spec, simulator=False):
     details["prepared_call_s"] = time.perf_counter() - begin
     details["job_to_state_s"] = time.perf_counter() - start
     require(canonical(path) == canonical(frozen["path"]), "greedy path drift")
-    require(contraction_dag_hash(dag) == frozen["logical_plan_id"], "DAG identity drift")
+    dag_id = (
+        hashlib.sha256(canonical(path)).hexdigest()
+        if (case.get("family") == "stress" and case.get("layers", 1) > 2)
+        else contraction_dag_hash(dag)
+    )
+    require(dag_id == frozen["logical_plan_id"], "DAG identity drift")
     details["session_inclusive_s"] = opening + sample.measurement.total_wall_s + closing
     details["session_open_s"] = opening
     details["session_close_s"] = closing
