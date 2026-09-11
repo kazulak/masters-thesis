@@ -1,0 +1,104 @@
+[
+  {
+    "id": "sequential",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/sequential_upmem_baseline.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "parallel",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/hierarchical_parallel_diagnostic.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "sensitivity",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/circuit_resource_sensitivity_diagnostic.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "transport",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/packed_operation_transport_adoption.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "quantizer",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/quantized_contraction_policy_v1.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "quantization",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/quantized_upmem_execution_diagnostic_v1.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "composition",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/upmem_kernel_schedule_system_v1.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "pilot",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/upmem_path_heuristic_v1.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "integration",
+    "ref": "504e614c5064ba020e5f47f6d05202568faadd69",
+    "path": "thesis/implementation/docs/upmem_execution_integration_v1.md",
+    "role": "historical scientific narrative, not raw observations"
+  },
+  {
+    "id": "p6_readout",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/report.md",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_aggregates",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/aggregates.csv",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_methods",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/methods.csv",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_contrasts",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/contrasts.csv",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_search",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/search.csv",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_model",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/model_diagnostics.json",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_provenance",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/provenance.json",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  },
+  {
+    "id": "p6_archives",
+    "ref": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+    "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/evidence_manifests/stage_archives.json",
+    "role": "accepted original P6 record; do not refit or pool with new data"
+  }
+]
