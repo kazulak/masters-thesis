@@ -1815,7 +1815,7 @@ def test_sequential_baseline_makefile_and_docs_commands_are_consistent() -> None
     help_result = _command("make", "help")
     conformance = _command("make", "-n", "sequential-conformance")
     qualifier = _command("make", "-n", "sequential-baseline")
-    document = (ROOT / "docs" / "sequential_upmem_baseline.md").read_text(
+    document = (ROOT.parent.parent / "REPRODUCIBILITY.md").read_text(
         encoding="utf-8"
     )
 
@@ -1830,7 +1830,7 @@ def test_sequential_baseline_makefile_and_docs_commands_are_consistent() -> None
 
 
 def test_active_docs_declare_evidence_sample_v4_only() -> None:
-    for path in (ROOT / "README.md", ROOT / "docs" / "evidence_workflow.md"):
+    for path in (ROOT / "README.md", ROOT.parent.parent / "REPRODUCIBILITY.md"):
         document = path.read_text(encoding="utf-8")
         assert "evidence_sample_v4" in document
         assert "evidence_sample_v3" not in document
