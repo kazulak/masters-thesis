@@ -6,6 +6,9 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   software-and-evidence:
     runs-on: ubuntu-latest
@@ -20,36 +23,114 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Record checkout and environment identity
+        run: |
+          set -euo pipefail
+          echo "event=$GITHUB_EVENT_NAME"
+          echo "event_sha=$GITHUB_SHA"
+          echo "checked_out_sha=$(git rev-parse HEAD)"
+          echo "checked_out_tree=$(git rev-parse 'HEAD^{tree}')"
+          echo "shallow=$(git rev-parse --is-shallow-repository)"
+          python --version
+          for tool in cc dpu-pkg-config dpu-upmem-dpurte-clang; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              command -v "$tool"
+            else
+              echo "unavailable: $tool"
+            fi
+          done
+          git merge-base --is-ancestor c86b589d971ef241c5f42d0da33fc772dd9c2107 HEAD
+          git merge-base --is-ancestor 9fdecfe0c01c769ceb5b7410e1aa2d38a089dc87 HEAD
+
       - name: Verify pinned submodules
         run: |
-          test "$(git -C thesis/implementation/external/QuEST rev-parse HEAD)"             = "9d7618d7263e3bfba433b88cf1eac0647f08fa0a"
-
-          test "$(git -C thesis/implementation/external/SimplePIM rev-parse HEAD)"             = "1d639c53532555f01e9f71d872e7712b166d6cba"
-
-          test "$(git -C thesis/implementation/external/PID-Comm rev-parse HEAD)"             = "cecc39e29e6576ced73b2041db6e357769a6531a"
+          test "$(git -C thesis/implementation/external/QuEST rev-parse HEAD)" = "9d7618d7263e3bfba433b88cf1eac0647f08fa0a"
+          test "$(git -C thesis/implementation/external/SimplePIM rev-parse HEAD)" = "1d639c53532555f01e9f71d872e7712b166d6cba"
+          test "$(git -C thesis/implementation/external/PID-Comm rev-parse HEAD)" = "cecc39e29e6576ced73b2041db6e357769a6531a"
 
       - name: Install implementation
         working-directory: thesis/implementation
         run: |
           python -m pip install --upgrade pip
-          python -m pip install             -c ci/constraints.txt             -e ".[dev,path-search]"
+          python -m pip install -c ci/constraints.txt -e ".[dev,path-search]"
+          python -m pip check
 
       - name: Build QuEST CPU runner
-        run: |
-          make -C thesis/implementation/native/quest_cpu
+        run: make -C thesis/implementation/native/quest_cpu
 
       - name: Build Python wheel
         working-directory: thesis/implementation
         run: |
-          python -m pip wheel             --no-build-isolation             --no-deps             --wheel-dir /tmp/quantum-bench-wheel             .
+          python -m pip wheel --no-build-isolation --no-deps --wheel-dir /tmp/quantum-bench-wheel .
 
       - name: Run implementation tests
+        env:
+          PYTEST_ADDOPTS: "-ra --junitxml=${{ runner.temp }}/masters-thesis-pytest.xml"
+        run: make -C thesis/implementation PYTHON=python test
+
+      - name: Report actual test coverage
+        if: always()
+        env:
+          PYTEST_XML: "${{ runner.temp }}/masters-thesis-pytest.xml"
         run: |
-          make -C thesis/implementation             PYTHON=python             test
+          python - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import os
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          def git(*args):
+              r = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+              return r.stdout.strip() if r.returncode == 0 else "unavailable"
+
+          lines = [
+              "## Software test coverage",
+              "",
+              f"Checked-out commit: `{git('rev-parse', 'HEAD')}`",
+              f"Checked-out tree: `{git('rev-parse', 'HEAD^{tree}')}`",
+              f"Actions event: `{os.environ.get('GITHUB_EVENT_NAME', 'unknown')}`",
+              "",
+          ]
+          path = Path(os.environ["PYTEST_XML"])
+          if not path.is_file():
+              lines.append("JUnit receipt unavailable: the test step did not produce a completed receipt. Do not interpret this as passing tests.")
+          else:
+              root = ET.parse(path).getroot()
+              cases = list(root.iter("testcase"))
+              counts = Counter()
+              reasons = Counter()
+              for case in cases:
+                  if case.find("error") is not None:
+                      counts["errors"] += 1
+                  elif case.find("failure") is not None:
+                      counts["failed"] += 1
+                  elif (skip := case.find("skipped")) is not None:
+                      counts["skipped"] += 1
+                      reasons[skip.attrib.get("message", "unspecified")] += 1
+                  else:
+                      counts["passed"] += 1
+              lines += [
+                  "| Total test cases | Passed | Failed | Errors | Skipped |",
+                  "| ---: | ---: | ---: | ---: | ---: |",
+                  f"| {len(cases)} | {counts['passed']} | {counts['failed']} | {counts['errors']} | {counts['skipped']} |",
+                  "",
+                  "A green generic CI run is not physical UPMEM qualification. Skipped SDK tests are not passes.",
+              ]
+              if reasons:
+                  lines += ["", "### Skip reasons", ""]
+                  for reason, count in sorted(reasons.items()):
+                      reason = reason.replace("\n", " ").replace("`", "'")
+                      lines.append(f"- {count}: {reason}")
+          text = "\n".join(lines) + "\n"
+          print(text)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+              stream.write(text)
+          PY
 
       - name: Run Ruff
         run: |
-          python -m ruff check             thesis/implementation/src             thesis/implementation/tests             thesis/implementation/scripts
+          python -m ruff check thesis/implementation/src thesis/implementation/tests thesis/implementation/scripts
 
       - name: Verify frozen P6 audit package
         working-directory: thesis/implementation/thesis_results/upmem_cost_guided_path_v1
@@ -60,17 +141,10 @@ jobs:
       - name: Run software-only plan/run/verify/report smoke
         working-directory: thesis/implementation
         run: |
+          set -euo pipefail
           RUN_ROOT="$RUNNER_TEMP/qbench-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          PLAN_DIR="$RUN_ROOT/plan"
-          RUN_DIR="$RUN_ROOT/run"
-          REPORT_DIR="$RUN_ROOT/report"
-
           mkdir -p "$RUN_ROOT"
-
-          make PYTHON=python plan             CONFIG=configs/tn_benchmark_reset.yml             OUTPUT="$PLAN_DIR"
-
-          make PYTHON=python run             CONFIG=configs/tn_benchmark_reset.yml             OUTPUT="$RUN_DIR"
-
-          make PYTHON=python verify             INPUT="$RUN_DIR"
-
-          make PYTHON=python report             INPUT="$RUN_DIR"             REPORT_OUTPUT="$REPORT_DIR"
+          make PYTHON=python plan CONFIG=configs/tn_benchmark_reset.yml OUTPUT="$RUN_ROOT/plan"
+          make PYTHON=python run CONFIG=configs/tn_benchmark_reset.yml OUTPUT="$RUN_ROOT/run"
+          make PYTHON=python verify INPUT="$RUN_ROOT/run"
+          make PYTHON=python report INPUT="$RUN_ROOT/run" REPORT_OUTPUT="$RUN_ROOT/report"

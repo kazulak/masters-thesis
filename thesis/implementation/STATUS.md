@@ -1,141 +1,117 @@
-# Final Implementation Status
+# Research and validation status
 
-This file describes the final thesis implementation and accepted research state. It
-supersedes earlier status text that described physical qualification, DAG scheduling, or
-hardware-calibrated path optimization as future work.
+The retained execution-system study and P6 physical path campaign are complete.
+A consolidated thesis-result presentation is not the same thing as another
+execution-system optimization or hardware campaign.
 
-## Frozen scientific identities
+## Scientific identities
 
-| Role | Identity |
-| --- | --- |
-| Final UPMEM executor | `459935f586fdd16c82013838e6d27a12604c3093` |
-| Executor tag | `thesis-upmem-kernel-schedule-system-v1` |
-| P6 qualified software | `2beea27411c16e90ed76988613ddb00bcc09f942` |
-| P6 software tag | `thesis-upmem-cost-guided-software-v1` |
-| P6 accepted result package | `8df2ebac61bacd08309ea490309be5a8dcb943b2` |
-| P6 results tag | `thesis-upmem-cost-guided-results-v1` |
-
-Later documentation/publication commits do not replace these experiment identities.
-
-## Final capability matrix
-
-| Capability | Final status | Evidence/claim boundary |
+| Role | Commit | Tag |
 | --- | --- | --- |
-| Circuit -> target-neutral TN lowering | Complete | Supported circuit/query scope only |
-| Complete path -> `ContractionDAG` lowering | Complete | Exact, untruncated contraction path |
-| NumPy same-DAG replay | Complete | Correctness/reference route |
-| Quimb/cotengra CPU TN adapters | Complete | External CPU TN baselines |
-| QuEST CPU/GPU adapters | Complete | GPU claims only where real GPU execution was verified |
-| UPMEM physical mapping | Complete for retained one-rank profile | Bounded output/K tiling and declared resource admission |
-| Persistent packed-wave transport | Retained | `packed_wave_v1` |
-| WRAM-panel kernel | Retained | `panel_only_v1`, KC=64, NC=32 |
-| Tasklet parallelism | Retained and physically studied | T1-T24 build qualification; measured subsets reported explicitly |
-| Multi-DPU contraction | Retained and physically studied | One-rank resource scaling only |
-| Independent DAG-wave execution | Retained and physically studied | Dependency-ready disjoint DPU groups, synchronous cohorts |
-| Four-product complex fusion | Retained when admitted | Generic UPMEM fallback when fused layout is not admitted |
-| Outer-K1 specialization | Completed negative experiment; not retained | No general claim that all shape specialization is unhelpful |
-| Exact slicing/concurrency | Bounded experiment | Workload-dependent; not automatic production selection |
-| DPU-resident intermediate pair | Completed negative bounded experiment; not retained | Does not rule out other residency designs |
-| Shared-scale complex int8 | Complete diagnostic policy | Same-policy correctness; approximation error reported separately |
-| Hardware-aware cost model | Complete | Ranking surrogate, not seconds predictor or physical constants |
-| UPMEM-aware reranking | Complete and physically evaluated | Improves conventional selection in the tested P6 domain |
-| UPMEM-guided adaptive generation | Complete and physically evaluated | No resolved benefit over reranking under the tested budget |
-| Multi-rank execution | Out of final thesis scope | No claim |
-| Async host/DPU overlap | Out of final thesis scope | No claim |
-| Energy measurement | Not implemented | No energy-efficiency claim |
-| Automatic CPU/GPU/UPMEM placement | Out of final thesis scope | No claim |
+| Executor | `459935f586fdd16c82013838e6d27a12604c3093` | `thesis-upmem-kernel-schedule-system-v1` |
+| P6 software | `2beea27411c16e90ed76988613ddb00bcc09f942` | `thesis-upmem-cost-guided-software-v1` |
+| P6 results | `8df2ebac61bacd08309ea490309be5a8dcb943b2` | `thesis-upmem-cost-guided-results-v1` |
 
-## Accepted execution-system findings
+## Capability and adoption matrix
 
-The final composed Stress16 scaling diagnostic reported:
+| Mechanism | Disposition | Boundary |
+| --- | --- | --- |
+| Supported circuit -> TN -> complete path -> DAG | Implemented | Supported deterministic full pre-measurement statevector queries |
+| Batched GEMM lowering | Implemented | Label permutation, one-sided reductions, bounded output/K tiling |
+| Scalar-MRAM route | Controlled microablation | Not a complete matched whole-circuit naive baseline |
+| WRAM-panel real-product kernel | Retained | KC=64, NC=32; bounded admission |
+| Tasklets within a DPU | Retained and physically studied | T1-T24 build support; physical measurement subsets stated separately |
+| Multiple DPUs per contraction | Retained and physically studied | One-rank tile/work-unit execution |
+| Independent DAG nodes on disjoint groups | Retained and physically studied | Static synchronous cohorts, not arbitrary asynchronous scheduling |
+| Four real products in one admitted launch | Retained | Correct complex reconstruction remains explicit |
+| Packed transport / persistent native host | Retained | Fewer/cheaper request boundaries; host work remains |
+| Split-complex float32 | Primary retained policy | Software DPU floating-point arithmetic |
+| Shared-scale complex int8 | Separately characterized | Replay correctness does not imply full-precision accuracy qualification |
+| Outer-K1 specialization | Implemented, evaluated, rejected | Negative adoption result, not an unimplemented requirement |
+| Resident intermediate pair | Bounded prototype, rejected | No graph-wide production residency claim |
+| Exact slicing / concurrency | Bounded evaluated transformation | Positive and negative cells; not automatic universal selection |
+| Five-term UPMEM cost | Implemented and calibrated | Ranking surrogate, not uniquely identifiable physical constants |
+| UPMEM reranking | Implemented and evaluated | R uses the F trace |
+| UPMEM-guided generation | Implemented and evaluated | U has a separate bounded trace; no resolved aggregate advantage over R |
+| NumPy/Quimb/cotengra/QuEST adapters | Implemented for declared roles | Adapter availability is not a completed matched final performance comparison |
+| Multi-rank / asynchronous overlap / automatic CPU-DPU placement | Outside retained scope | No performance claim |
+| Energy efficiency | Not established | Some external energy-related code is not an accepted UPMEM energy study |
 
-```text
-D1T1 session-inclusive median: 7.104246 s
-D1T16 session-inclusive median: 1.589183 s
-paired geometric speedup:       4.501040x
+## Accepted findings
 
-D1T8 session-inclusive median:  1.834585 s
-D4T8 session-inclusive median:  1.199998 s
-paired geometric speedup:       1.530679x
-```
+The detailed [executor record](docs/upmem_kernel_schedule_system_v1.md) preserves
+per-study source, measurement boundary, controls, adoption rules and archives.
+Representative recorded results include:
 
-Fresh fusion confirmation reported 1.9034x session-inclusive speedup for the confirmed
-development cell.
+| Comparison | Recorded session-inclusive ratio | Qualification |
+| --- | ---: | --- |
+| Final Stress16 D1/T1 -> D1/T16 | 4.501040x | Composed-executor resource diagnostic |
+| Final Stress16 D1/T8 -> D4/T8 | 1.530679x | Composed-executor resource diagnostic |
+| Complex launch fusion confirmation | 1.9034x | Fresh development confirmation for its declared cell |
+| Six-cell serial/static-DAG A/B | 1.214213x | Equal-cell development aggregate |
+| Stress16 D4/T8 DAG confirmation | 1.431726x | Fresh development confirmation, not untouched cross-family testing |
+| Outer-K1 target region | 0.985619x | Adoption rejected |
+| Stress16 bounded residency probe | 0.959855x | Adoption rejected |
+| Stress16 slicing, D2 / D4 | 0.608676x / 0.780553x | Negative combined transformation/scheduling results |
+| EDC14 D4 slicing confirmation | 1.125244x | Positive bounded development result |
 
-The six-cell serial/static-DAG development A/B reported a 1.2142126437x
-session-inclusive equal-cell geometric speedup. A separately selected Stress16 D4/T8
-development confirmation reported 1.431726322x.
+These ratios belong to separate experiments. They must not be multiplied into a
+single cumulative speedup. The scalar/panel result is a microablation with a
+separate boundary, not another whole-circuit row in this table.
 
-Outer-K1 specialization failed its adoption gate. The bounded Stress16 resident-pair
-probe and Stress16 slicing cells were valid negative results; EDC14 D4 slicing produced a
-positive development confirmation. These outcomes are retained as research findings
-rather than reopened optimization tasks.
+## P6 accounting and interpretation
 
-## Accepted P6 state
+| Stage | Accepted physical attempts |
+| --- | ---: |
+| Initial | 192 |
+| Feedback 1 | 144 |
+| Feedback 2 | 144 |
+| Evaluation | 198 |
+| Total | 678 |
 
-P6 executed:
+The ceiling was 768; retries and replacements were zero. Evaluation used 33
+unique cell/path selections per block after method-role deduplication, so
+`33 * (1 warmup + 5 measurements) = 198`. It is not an incomplete 288-attempt run.
 
-```text
-initial calibration: 192
-feedback round 1:    144
-feedback round 2:    144
-evaluation:          198
-total:               678
-ceiling:              768
-retries:                0
-replacements:           0
-```
+Final integer weights: `[1,2,1,1,5]`. The 1,001-tuple development grid produces
+47 distinct measured-pool selection vectors, with 16 tuples tied at the best
+rounded training objective. Weights are ranking parameters, not measured shares.
 
-The evaluation maximum was 288 attempts, but coincident method selections were
-deduplicated before physical execution. The frozen evaluation required 33 distinct
-cell/path executions per block, therefore `33 * 6 = 198` physical attempts.
+Primary R/U session-inclusive ratio: **1.001343x**, descriptive interval
+**[0.994836, 1.008509]**, same selected path in **8/12 cells**.
 
-Final cost-model integer weights:
+F/U is **1.040425x** overall and **1.081841x** at four DPUs. G/U is **1.266508x**
+overall. U is nevertheless slower than G in four cells; for HS18 at four DPUs,
+G/U is **0.687613x**. Report regressions, search cost, and lifecycle timing with
+aggregate improvements. See [interpretation](docs/RESULTS_INTERPRETATION.md).
 
-```text
-[1, 2, 1, 1, 5]
-```
+## Software evidence is not hardware evidence
 
-The final model diagnostics report 1,001 coefficient tuples, 47 distinct measured-pool
-selection vectors, and 16 tuples tied at the best rounded training objective. Therefore
-the fitted weights must not be interpreted as unique physical coefficients or measured
-runtime shares.
+For the cleanup audit anchor `7c2bd4094192644139f6b2c218bbcbe91e3fc079`, hosted run
+`34584955327` / job `103216904431` reported **2,257 passed and 232 skipped**, not
+2,489 executed passes. The run checked PR merge commit
+`a1c4cf2bfe62d75736748c1934367c2541bbef0d`; its Git tree
+`6490e7c082d3a6f9038e4f83e88340917a501cd3` matches the audited branch tree.
+That is successful tree-equivalent PR CI, not a literal checkout of the head SHA.
 
-## P6 primary result
+The operator separately reported 2,489 passes in an SDK-equipped local/fresh-clone
+environment. Those local claims must be tied to their retained logs and environment.
+Subsequent runs must record collected/passed/skipped/failed counts, skip reasons,
+actual checkout SHA, tree SHA, Python version and SDK availability.
 
-```text
-R/U session-inclusive:
-ratio: 1.0013425605931643
-descriptive paired-block 95% interval:
-[0.9948355448727421, 1.0085087497299605]
-same path: 8/12 cells
-```
+SDK absence explains skips in SDK-gated tests; it does not invalidate the distinct
+historical physical qualifications. Conversely, green generic CI cannot replace
+SDK or physical qualification. Preserve full Git history for provenance checks.
 
-No additional physical advantage of adaptive UPMEM-guided generation over UPMEM-aware
-reranking is resolved under the tested 128-proposal protocol.
+## Evidence access and remaining presentation gaps
 
-UPMEM-aware selection remains useful:
+The committed [P6 package](thesis_results/upmem_cost_guided_path_v1/README.md)
+contains compact accepted records and readout tools. Original physical archive
+bytes are stored separately; a digest alone is not a downloadable raw dataset.
+Several earlier mechanism studies are documented through their accepted records
+and archive identities rather than a single public raw-data bundle.
 
-```text
-F/R session-inclusive overall: 1.0390296080428785x
-F/U session-inclusive overall: 1.040424568249768x
-F/U session-inclusive, 4 DPU:  1.0818412974163845x
-F/U steady wall, 4 DPU:        1.1153755638648002x
-G/U session-inclusive overall: 1.2665079983332086x
-```
-
-## Generalization boundary
-
-The P6 test set contains six circuit families represented in both development and test
-with distinct instances/sizes. The result therefore tests **instance/size transfer within
-represented families**, not family-held-out generalization.
-
-The paired bootstrap intervals resample five complete timing blocks under one paired
-search-seed schedule. They are descriptive and are not equivalence tests or
-optimizer-population confidence intervals.
-
-## Research status
-
-The implementation research phase is closed. Future work belongs in a new study rather
-than being added to the accepted thesis campaign because a result is neutral or because
-an excluded feature could be interesting.
+The historical sequential CPU control and the scalar kernel microablation have
+different purposes. No matched final CPU-versus-retained-UPMEM speedup follows
+from P6 alone. No new measurement, refitting, or hardware invocation is authorized
+by this status document.

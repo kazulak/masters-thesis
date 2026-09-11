@@ -1,157 +1,192 @@
-# Reproducibility
+# Reproducibility and validation boundaries
 
-This repository separates three kinds of reproducibility:
+The retained software, accepted experiment records, and new publication outputs
+have different provenance. Verifying this repository must not silently launch
+historical physical campaigns, refit the model, or regenerate accepted evidence.
 
-1. software verification;
-2. compact accepted-evidence verification;
-3. historical physical-experiment replication.
-
-They are not the same operation.
-
-## 1. Software verification
-
-Clone recursively:
+## 1. Clone with history and pinned dependencies
 
 ```bash
-git clone --recurse-submodules   https://github.com/kazulak/masters-thesis.git
-
+git clone --recurse-submodules https://github.com/kazulak/masters-thesis.git
 cd masters-thesis
 ```
 
-Create a Python 3.10 environment:
+Do not use a shallow clone: retained qualification checks test real ancestry.
+For an existing shallow clone, fetch the missing history from this repository
+before validation:
 
 ```bash
-python3.10 -m venv thesis/.venv
-
-thesis/.venv/bin/python -m pip install --upgrade pip
-
-thesis/.venv/bin/python -m pip install   -c thesis/implementation/ci/constraints.txt   -e './thesis/implementation[dev,path-search]'
+git fetch --unshallow origin
 ```
 
-Build the QuEST CPU helper:
-
-```bash
-make -C thesis/implementation/native/quest_cpu
-```
-
-Run the full implementation test suite:
-
-```bash
-make -C thesis/implementation   PYTHON=../.venv/bin/python   test
-```
-
-Run Ruff:
-
-```bash
-thesis/.venv/bin/python -m ruff check   thesis/implementation/src   thesis/implementation/tests   thesis/implementation/scripts
-```
-
-## 2. Software smoke workflow
-
-Create a software-only deterministic plan:
-
-```bash
-make -C thesis/implementation   PYTHON=../.venv/bin/python   plan   CONFIG=configs/tn_benchmark_reset.yml   OUTPUT=runs/standalone-plan
-```
-
-Run the software benchmark routes:
-
-```bash
-make -C thesis/implementation   PYTHON=../.venv/bin/python   run   CONFIG=configs/tn_benchmark_reset.yml   OUTPUT=runs/standalone-run
-```
-
-Verify:
-
-```bash
-make -C thesis/implementation   PYTHON=../.venv/bin/python   verify   INPUT=runs/standalone-run
-```
-
-Report:
-
-```bash
-make -C thesis/implementation   PYTHON=../.venv/bin/python   report   INPUT=runs/standalone-run   REPORT_OUTPUT=runs/standalone-report
-```
-
-These are software verification commands, not physical UPMEM benchmarks.
-
-## 3. Verify the frozen P6 audit package
-
-```bash
-cd thesis/implementation/thesis_results/upmem_cost_guided_path_v1
-
-sha256sum -c SHA256SUMS
-
-python3 tools/test_p6_readout.py
-```
-
-The checksum command must report every tracked package file as `OK`.
-
-The synthetic readout tests must pass.
-
-Do not regenerate the accepted P6 package merely because it is being verified.
-
-## 4. Verify submodule pins
+That command is needed only when `git rev-parse --is-shallow-repository` reports
+`true`. Do not replace ancestry validation with a special case.
 
 From repository root:
 
 ```bash
-test "$(git -C thesis/implementation/external/QuEST rev-parse HEAD)"   = "9d7618d7263e3bfba433b88cf1eac0647f08fa0a"
+set -euo pipefail
+git submodule update --init --recursive
 
-test "$(git -C thesis/implementation/external/SimplePIM rev-parse HEAD)"   = "1d639c53532555f01e9f71d872e7712b166d6cba"
+test "$(git -C thesis/implementation/external/QuEST rev-parse HEAD)" = \
+  9d7618d7263e3bfba433b88cf1eac0647f08fa0a
+test "$(git -C thesis/implementation/external/SimplePIM rev-parse HEAD)" = \
+  1d639c53532555f01e9f71d872e7712b166d6cba
+test "$(git -C thesis/implementation/external/PID-Comm rev-parse HEAD)" = \
+  cecc39e29e6576ced73b2041db6e357769a6531a
 
-test "$(git -C thesis/implementation/external/PID-Comm rev-parse HEAD)"   = "cecc39e29e6576ced73b2041db6e357769a6531a"
+git merge-base --is-ancestor \
+  c86b589d971ef241c5f42d0da33fc772dd9c2107 HEAD
+git merge-base --is-ancestor \
+  9fdecfe0c01c769ceb5b7410e1aa2d38a089dc87 HEAD
 ```
 
-## 5. Physical UPMEM experiments
+Historical scientific tags retain their original commits. A publication commit
+must not be written into an old experiment's `source_sha`.
 
-The accepted physical campaigns are frozen historical research records.
+## 2. Install and run software checks
 
-Do not treat:
+Use the repository's Python 3.10 development environment, not an inferred copy of
+the historical physical environment:
 
-```text
-pytest
-SDK simulator
-software smoke runs
+```bash
+set -euo pipefail
+python3.10 -m venv thesis/.venv
+PY="$(pwd)/thesis/.venv/bin/python"
+"$PY" -m pip install --upgrade pip
+"$PY" -m pip install -c thesis/implementation/ci/constraints.txt \
+  -e './thesis/implementation[dev,path-search]'
+"$PY" -m pip check
+make -C thesis/implementation/native/quest_cpu
 ```
 
-as reproductions of physical UPMEM performance.
+The QuEST build used by this repository produces
+`thesis/implementation/native/quest_cpu/bin/quest_runner`. It is a CPU baseline
+helper, not a UPMEM kernel or proof of a CPU-versus-UPMEM performance result.
 
-The P6 physical campaign originally used:
+Store validation receipts outside the checkout:
 
-```text
-host:
-safari-baguette1.ethz.ch
+```bash
+set -euo pipefail
+RECEIPTS=$(mktemp -d "${TMPDIR:-/tmp}/masters-thesis-validation.XXXXXX")
+{
+  git rev-parse HEAD
+  git rev-parse 'HEAD^{tree}'
+  "$PY" --version
+  "$PY" -m pip freeze
+} > "$RECEIPTS/environment.txt"
 
-UPMEM SDK:
-2023.1.0
+unset UPMEM_ALLOW_PHYSICAL_HARDWARE
+PYTEST_ADDOPTS="-ra --junitxml=$RECEIPTS/pytest.xml" \
+  make -C thesis/implementation PYTHON="$PY" test \
+  2>&1 | tee "$RECEIPTS/pytest.log"
 
-Python:
-3.10.12
-
-rank:
-/dev/dpu_rank1
+"$PY" -m ruff check \
+  thesis/implementation/src \
+  thesis/implementation/tests \
+  thesis/implementation/scripts \
+  2>&1 | tee "$RECEIPTS/ruff.log"
+printf 'Validation receipts: %s\n' "$RECEIPTS"
 ```
 
-along with exact native binaries, source identities, resource locks, CPU/governor records, and once-only evidence controls.
+Retain `set -o pipefail`: a failing command must not appear successful merely
+because `tee` succeeded. Do not delete receipts before recording their location
+and the actual results.
 
-A new hardware run is a replication experiment with a new run/environment identity.
+SDK-dependent tests intentionally skip when the required SDK/compiler tools are
+absent. Report **passed, failed, errors, skipped and skip reasons**. Do not call
+2,489 collected tests “2,489 passed” unless that particular receipt says so.
+The reviewed generic hosted CI run had 2,257 passes and 232 skips; a different
+SDK-equipped environment can have a different pass/skip split.
 
-## 6. Historical P6 operator script
+`UPMEM_REQUIRE_SDK_SIMULATOR=1` makes missing simulator prerequisites a failure
+for tests that implement that gate. Use it only for a deliberately configured
+SDK qualification environment. Normal hosted CI is not a physical UPMEM test.
+Neither simulator success nor absence of detected races is proof of every
+physical thread interleaving.
 
-The file:
+## 3. Software-only smoke
 
-```text
-thesis/implementation/thesis_results/upmem_cost_guided_path_v1/tools/p6_operator.sh
+From repository root with `PY` set as above:
+
+```bash
+set -euo pipefail
+RUNROOT=$(mktemp -d "${TMPDIR:-/tmp}/masters-thesis-smoke.XXXXXX")
+make -C thesis/implementation PYTHON="$PY" plan \
+  CONFIG=configs/tn_benchmark_reset.yml OUTPUT="$RUNROOT/plan"
+make -C thesis/implementation PYTHON="$PY" run \
+  CONFIG=configs/tn_benchmark_reset.yml OUTPUT="$RUNROOT/run"
+make -C thesis/implementation PYTHON="$PY" verify INPUT="$RUNROOT/run"
+make -C thesis/implementation PYTHON="$PY" report \
+  INPUT="$RUNROOT/run" REPORT_OUTPUT="$RUNROOT/report"
+printf 'Software smoke evidence: %s\n' "$RUNROOT"
 ```
 
-is retained as audit/provenance material.
+This checks software operation and evidence flow. It does not supply a new
+physical UPMEM performance comparison. A smoke report with zero eligible speedup
+rows must remain zero, not be repurposed into a benchmark claim.
 
-It is bound to the original `kazulak/Masters` Git source/tag graph and historical physical environment.
+## 4. Verify the immutable P6 package
 
-It is **not** part of normal standalone-repository verification and should not be invoked simply to test this repository.
+```bash
+(
+  set -e
+  cd thesis/implementation/thesis_results/upmem_cost_guided_path_v1
+  sha256sum -c SHA256SUMS
+  python3 tools/test_p6_readout.py
+)
+```
 
-## 7. Final thesis calculations
+The accepted compact package has 33 checksum entries and a five-test readout
+unit suite at the recorded result version. Check actual output rather than
+assuming counts. Do not regenerate checksums to conceal a changed file.
 
-Final thesis-facing result tables and calculations are deliberately not generated in Chunk 2.
+Checksum verification confirms integrity against the manifest; it is not a
+cryptographic signature and does not itself validate experimental design.
+Original physical archive digests can be independently recomputed only when
+those archive bytes are available. Their identities are recorded in
+`evidence_manifests/stage_archives.json`.
 
-They will be generated in a separate later chunk after this standalone repository has passed clean-clone verification.
+## 5. CI identity
+
+A pull-request Actions workflow can check out GitHub's synthetic merge commit
+rather than the contributor's branch HEAD. Record the actual checked-out commit
+and tree, the event, and the relevant head commit separately. A tree-equivalent
+run is useful validation, but it is not literally an exact-HEAD checkout.
+
+The workflow retains `fetch-depth: 0`, reports checkout/environment identity,
+and emits the actual pytest/JUnit counts including skips. Missing SDK tests
+remain visible instead of being described as passed.
+
+## 6. Physical and numerical evidence
+
+Historical physical campaigns are frozen records. The retained P6 operator
+script is not a general installation test. Do not launch it while validating
+publication documentation or analysis code.
+
+The recorded P6 environment used `safari-baguette1.ethz.ch`, UPMEM SDK 2023.1.0,
+Python 3.10.12 and an explicitly selected rank, together with exact binary,
+resource, affinity, governor and run identities. Those facts do not automatically
+apply to a new machine or run. Earlier campaigns recorded their own environments.
+
+Three different checks must stay distinct:
+
+1. execution completed under the requested physical target and resource contract;
+2. the result matched the declared numerical-policy replay;
+3. the result met the declared full-precision accuracy criterion.
+
+An approximate int8 result can satisfy the first two and fail the third. A
+correct numerical result alone does not establish performance eligibility.
+
+## 7. CPU comparisons and later result extraction
+
+The historical sequential baseline contains a matched same-DAG NumPy/UPMEM
+comparison under its own diagnostic conditions. P6 compares four UPMEM path
+methods, not CPU against UPMEM. QuEST/Quimb adapter availability is not evidence
+of a final matched CPU comparison.
+
+The thesis-facing extraction layer has not been created by the repository audit.
+Use the accepted result packages and their original analysis contracts; do not
+invoke a nonexistent `publication/build_thesis_numbers.py` script. Plans and
+operator records remain historical evidence, not authorization to tune completed
+studies or silently add a benchmark campaign.

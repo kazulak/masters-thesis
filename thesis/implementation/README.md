@@ -1,196 +1,132 @@
-# Implementation
+# Research implementation
 
-This directory contains the active implementation used for the Master's thesis research
-on exact tensor-network quantum-circuit simulation on UPMEM PIM hardware.
+This is the active implementation of deterministic, full pre-measurement
+statevector simulation for supported circuits through exact, untruncated
+complex tensor-network contraction with physical UPMEM offload.
 
-**Final status:** research implementation frozen. The executor and P6 path-search campaign
-are complete; no further optimization is required for the thesis result.
+[Architecture](ARCHITECTURE.md), [status](STATUS.md),
+[research records](docs/README.md), and
+[interpretation](docs/RESULTS_INTERPRETATION.md) define the completed research.
+The [root reproducibility guide](../../REPRODUCIBILITY.md) is the canonical
+installation and verification entry point.
 
-## Final execution flow
-
-```text
-SimulationJob
-  -> target-neutral TensorNetwork
-  -> complete contraction path
-  -> ContractionDAG
-  -> target-specific execution
-
-CPU/TN routes:
-  NumPy same-DAG replay / Quimb / cotengra / QuEST
-
-Final UPMEM route:
-  ContractionDAG
-  -> UpmemPlan
-  -> static_dag_waves_v1
-  -> packed_wave_v1
-  -> persistent native ABI-v5 prepared-wave execution
-  -> WRAM-panel DPU kernel
-  -> deterministic host reconstruction/reduction
-  -> canonical evidence
-```
-
-`TensorNetwork` contains semantic tensor-network structure only. `ContractionDAG` is the
-logical execution IR. `UpmemPlan` and the static DAG-wave scheduler contain target
-placement, tiling, topology, and execution-policy decisions.
-
-## Frozen UPMEM profile
-
-The final retained executor is commit
-`459935f586fdd16c82013838e6d27a12604c3093`, tagged
-`thesis-upmem-kernel-schedule-system-v1`.
-
-The retained study policy is:
+## Execution pipeline
 
 ```text
-transport:           packed_wave_v1
-schedule:            static_dag_waves_v1
-complex execution:   fused_when_admitted_v1
-geometry:            panel_only_v1
-intermediates:       host_roundtrip_v1
-primary numeric:     split_complex_float32_v1
-rank count:          1
+SimulationJob -> TensorNetwork -> complete path -> ContractionDAG
+  -> UpmemPlan -> static dependency-ready cohorts
+  -> packed-wave transport -> persistent native host
+  -> WRAM-panel DPU execution -> host reconstruction/reduction
+  -> little-endian full statevector -> validation and evidence
 ```
 
-Tasklet parallelism, multi-DPU contraction, and independent-DAG execution on disjoint DPU
-groups are part of the frozen executor. Outer-K1 specialization and production residency
-were evaluated but not retained. Exact slicing remains an explicitly declared
-transformation rather than an automatic production policy.
+The conventional contraction is lowered to batched `(B,M,K) @ (B,K,N)` products.
+This mathematical GEMM lowering does not mean that a generic GPU/CPU BLAS library
+runs on UPMEM. The retained DPU implementation is the thesis-owned panel kernel.
 
-## Final P6 path optimization
+## Retained execution profile
 
-The P6 software source is
-`2beea27411c16e90ed76988613ddb00bcc09f942`, tagged
-`thesis-upmem-cost-guided-software-v1`.
+| Decision | Retained policy |
+| --- | --- |
+| Scope | One UPMEM rank |
+| Transport | `packed_wave_v1` |
+| Schedule | `static_dag_waves_v1` |
+| Complex dispatch | `fused_when_admitted_v1` |
+| Geometry | `panel_only_v1` |
+| Intermediate placement | `host_roundtrip_v1` |
+| Primary numerical policy | `split_complex_float32_v1` |
+| Separate approximate policy | `complex_int8_shared_scale_v1` |
 
-The five-term launch-aware ranking surrogate is:
+Parallelism exists within a DPU across tasklets, across tiles of one contraction
+on multiple DPUs, and across dependency-ready contractions on disjoint DPU groups.
+Cohorts are synchronous. This is not asynchronous transfer/kernel overlap.
 
-```text
-C =
-    theta_H * H / s_H
-  + theta_P * P / s_P
-  + theta_N * N / s_N
-  + sum_launch max_dpu(
-        theta_M * M[launch,dpu] / s_M
-      + theta_W * W[launch,dpu] / s_W
-    )
-```
+Complex products use RR, II, RI, and IR lanes; the host reconstructs
+`real = RR - II`, `imag = RI + IR`. Fusion reduces launch boundaries where memory
+admission permits; it neither removes the four real products nor silently moves
+contraction work to the CPU.
 
-The final frozen integer weights are:
+UPMEM has no hardware FPU, but the float32 policy executes software floating-point
+arithmetic on DPUs. Int8 quantization is optional and has its own error analysis.
+Correct replay of int8 arithmetic does not imply acceptable full-precision error.
 
-```text
-[1, 2, 1, 1, 5]
-```
+## Source map
 
-These are **ranking parameters** over normalized model terms. They are not measured
-runtime percentages and are not unique architectural constants.
+| Source | Responsibility |
+| --- | --- |
+| `circuits.py`, `lowering.py`, `model.py` | Supported circuit semantics, TN/DAG construction and validation |
+| `upmem/tiling.py`, `upmem/plan.py` | Label-to-matrix geometry and bounded physical work |
+| `upmem/scheduling.py` | Deterministic ready-node scheduling and disjoint groups |
+| `numerics.py`, `quantized_contraction.py` | Complex policies, quantization, reconstruction and policy replay |
+| `upmem/wave_work.py`, `packed_wave.py`, `wave_protocol.py`, `wave_result.py` | Shared launch decisions and checked packed protocol |
+| `upmem/runtime.py`, `upmem/native_session.py` | Host orchestration, session exclusivity, reconstruction and evidence facts |
+| `native/upmem/runtime/` | Native host, checked controls, WRAM-panel/four-product DPU kernels |
+| `upmem/execution_features.py`, `upmem/path_heuristic.py` | Complete-plan facts and scoring primitives |
+| `scripts/upmem_cost_guided_path.py`, `scripts/upmem_cost_guided_execution.py` | Bounded P6 search/fitting and physical-controller contract |
+| `cpu.py`, `baselines.py` | Same-DAG/policy references and external simulation adapters |
+| `cli.py`, `experiment.py`, `evidence.py`, `report.py` | Collection, validation, evidence and reporting |
 
-The final P6 audit package is:
+Several source identifiers still contain `v4`, `M5`, or older checkpoint wording.
+Those historical names do not determine the active transport. The retained wave
+route uses ABI-v5 controls. Do not rename or cosmetically edit hash-bound source
+files merely to remove historical terminology.
 
-```text
-thesis_results/upmem_cost_guided_path_v1/
-```
+## P6
 
-Its accepted physical campaign used 678 attempts within the 768-attempt ceiling, with
-zero retries and zero replacements.
+The completed float32 study uses `upmem_launch_cost_v1`, a five-term,
+launch-aware ranking surrogate. The final integer coefficient vector is
+`[1,2,1,1,5]` over `(H,P,N,M,W)`, normalized by ten. It is not a runtime-share
+breakdown or a uniquely identified set of machine constants.
 
-## Main P6 result
+The module also retains older six-term and grouped scoring helpers for historical
+studies. They are not the final P6 objective. P6 uses a separate serial ask/tell
+search adapter; reading the legacy helpers alone gives an incorrect description
+of the final algorithm.
 
-The primary held-out comparison is R/U:
+The immutable [P6 package](thesis_results/upmem_cost_guided_path_v1/README.md)
+records 678 physical attempts, a frozen evaluation, and the primary R/U result.
+The overall near-neutral R/U result coexists with gains over F and regressions
+against G for particular cells. See the complete
+[interpretation](docs/RESULTS_INTERPRETATION.md), not only aggregate speedups.
 
-```text
-R = UPMEM-aware reranking of the conventional F search trace
-U = separate search with UPMEM cost fed back during adaptive generation
-```
+## Baselines and timing
 
-Session-inclusive R/U:
+The sequential reference uses greedy, D1/T1, separate real-product launches, and
+WRAM-panel staging. It is not an unstaged scalar-MRAM whole-circuit baseline.
+The separate scalar/panel microablation isolates staging on a small fixed GEMM.
+Do not combine those experiments into a manufactured cumulative speedup.
 
-```text
-1.0013425605931643x
-descriptive paired-block 95% interval:
-[0.9948355448727421, 1.0085087497299605]
-same selected path: 8 / 12 cells
-```
+`steady_execution_v1` includes host preparation/encoding, requests, transfers,
+launches, reconstruction, and final output copying inside its measured boundary.
+It excludes planning and session lifecycle. Session-inclusive time adds the
+measured open and close times per sample. Neither is the complete one-shot job
+including path search and reference validation.
 
-Therefore the bounded experiment does not resolve an additional physical benefit from
-UPMEM-guided candidate generation beyond UPMEM-aware reranking.
+The native `kernel_time_s` counter times synchronous SDK launch/wait on the host.
+It is not a direct measurement of arithmetic-only DPU cycles. Cohort counters
+are attributed once, not independently to every concurrently executed node.
 
-UPMEM-aware selection does improve on the FLOP-selected path:
+## Evidence schemas
 
-```text
-F/U overall session-inclusive: 1.040424568249768x
-F/U 4-DPU session-inclusive:   1.0818412974163845x
-F/U 4-DPU steady wall:         1.1153755638648002x
-```
+Manifests use `evidence_manifest_v2`, samples use `evidence_sample_v4`, sessions use
+`evidence_session_v1`, and reports use `evidence_report_v5`. These identifiers are
+part of the active evidence contract and are the schemas used by the current reporting
+pipeline.
 
-Search time is an offline planning cost and is reported separately from physical
-session-inclusive execution.
-
-## Install and test
-
-From this directory:
+## Verification from the repository root
 
 ```bash
-python3.10 -m venv ../.venv
-../.venv/bin/python -m pip install --upgrade pip
-../.venv/bin/python -m pip install -c ci/constraints.txt -e '.[dev,path-search]'
-
-make PYTHON=../.venv/bin/python test
-../.venv/bin/python -m ruff check src tests scripts
+python3.10 -m venv thesis/.venv
+thesis/.venv/bin/python -m pip install --upgrade pip
+thesis/.venv/bin/python -m pip install \
+  -c thesis/implementation/ci/constraints.txt \
+  -e './thesis/implementation[dev,path-search]'
+make -C thesis/implementation/native/quest_cpu
+PY="$(pwd)/thesis/.venv/bin/python"
+PYTEST_ADDOPTS=-ra make -C thesis/implementation PYTHON="$PY" test
+"$PY" -m ruff check thesis/implementation/src thesis/implementation/tests thesis/implementation/scripts
 ```
 
-The publication CI also builds the QuEST CPU runner and verifies the final P6 audit
-package.
-
-## Normal software commands
-
-```bash
-make PYTHON=../.venv/bin/python plan \
-  CONFIG=configs/tn_benchmark_reset.yml \
-  OUTPUT=runs/example-plan
-
-make PYTHON=../.venv/bin/python run \
-  CONFIG=configs/tn_benchmark_reset.yml \
-  OUTPUT=runs/example-run
-
-make PYTHON=../.venv/bin/python verify \
-  INPUT=runs/example-run
-
-make PYTHON=../.venv/bin/python report \
-  INPUT=runs/example-run \
-  REPORT_OUTPUT=runs/example-report
-```
-
-## Physical hardware warning
-
-Historical physical UPMEM experiments are already complete and frozen. Do not rerun them
-as part of normal repository verification.
-
-The physical controller intentionally requires exact source, binaries, SDK, resource
-ownership, CPU/governor facts, evidence storage, and a once-only invocation identity.
-A new physical campaign would be a new experiment and must not be presented as a
-reproduction of the accepted P6 observations without a separately frozen protocol.
-
-## Evidence rules
-
-Manifests use `evidence_manifest_v2`, samples use `evidence_sample_v4`, sessions use `evidence_session_v1`, and reports use `evidence_report_v5`.
-Simulator timing is never physical-performance evidence. Numerical-policy correctness is
-separate from approximation error. Missing component timings are unavailable, not zero.
-Speedup claims use compatible timing boundaries and matched controls.
-
-For P6, evaluation data never enter fitting. Method aliases that select the same path
-share one physical observation rather than being counted as independent samples.
-
-## Layout
-
-```text
-src/quantum_bench/        Python implementation
-native/                   QuEST and UPMEM native code
-configs/                  experiment/workload definitions
-scripts/                  qualification, analysis, and bounded study controllers
-tests/                    software and protocol tests
-docs/                     architecture/evidence research records
-thesis_results/           tracked compact result/evidence packages
-```
-
-See `STATUS.md` for the final capability matrix and `docs/README.md` for the document
-index.
+SDK-dependent tests may skip when their prerequisites are absent. Do not turn a
+collection count into a pass count. No physical campaign should be launched by
+these commands. Accepted physical evidence is independently source-bound.
