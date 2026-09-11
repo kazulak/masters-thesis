@@ -1,0 +1,147 @@
+{
+  "schema": "thesis_synthesis_sources_v1",
+  "repository": "kazulak/masters-thesis",
+  "evidence_commit": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+  "implementation_commit": "f6b570a98a610d41b5b16401a42ce12a94042d38",
+  "p6_software_commit": "2beea27411c16e90ed76988613ddb00bcc09f942",
+  "p6_results_commit": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+  "inputs": {
+    "final_observations": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/observations.csv"
+    },
+    "final_coverage": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/coverage.csv"
+    },
+    "final_times": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/times.csv"
+    },
+    "final_comparisons": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/comparisons.csv"
+    },
+    "final_circuits": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/circuits.csv"
+    },
+    "final_contractions": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/contractions.csv"
+    },
+    "final_largest_tested": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/largest_tested.csv"
+    },
+    "final_plan_facts": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/readout/plan_facts.csv"
+    },
+    "scope": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/scope.json"
+    },
+    "binding": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/binding.json"
+    },
+    "suite_T": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/suites/T.json"
+    },
+    "suite_D": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/suites/D.json"
+    },
+    "suite_A": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/suites/A.json"
+    },
+    "suite_W": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1/suites/W.json"
+    },
+    "p6_aggregates": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/aggregates.csv"
+    },
+    "p6_contrasts": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/contrasts.csv"
+    },
+    "p6_methods": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/methods.csv"
+    },
+    "p6_search": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/search.csv"
+    },
+    "p6_diagnostics": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/model_diagnostics.json"
+    },
+    "quantization": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "thesis/implementation/thesis_results/quantized_contraction_policy_v1/quantization_circuits.csv"
+    },
+    "mechanisms": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "evaluation/final_v1/historical_results.csv"
+    },
+    "history_sources": {
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "path": "evaluation/final_v1/historical_sources.json"
+    }
+  },
+  "checksum_packages": [
+    "thesis/implementation/thesis_results/final_evaluation_v1",
+    "thesis/implementation/thesis_results/upmem_cost_guided_path_v1"
+  ],
+  "expected": {
+    "attempts": 1440,
+    "warmups": 235,
+    "measured": 1205,
+    "success": 1404,
+    "unsupported": 36,
+    "measured_success": 1175,
+    "measured_unsupported": 30,
+    "cells": 235,
+    "complete_cells": 229,
+    "times": 1871,
+    "comparisons": 453,
+    "p6_methods": 48,
+    "p6_contrasts": 144,
+    "p6_aggregates": 36,
+    "p6_search": 24,
+    "mechanisms": 32
+  },
+  "unsupported_cases": [
+    "bb84_n26",
+    "bv_n26",
+    "edc_n25",
+    "hs_n26",
+    "qrng_n26",
+    "xor_n26"
+  ],
+  "primary_resource_metric": "prepared_call_s",
+  "primary_cpu_metric": "job_to_state_s",
+  "secondary_resource_metric": "session_inclusive_s",
+  "p6_primary_metric": "session_inclusive_s",
+  "ratio_orientation": "numerator_time / denominator_time; >1 favors denominator",
+  "statistics": "Use accepted intervals; recompute original final-campaign medians, MAD and paired bootstrap only as verification. No new confidence procedure or refit.",
+  "selection": "Best observed resource is minimum prepared_call_s median, ties broken by smaller integer resource; descriptive only. Never replace the fixed D64/T24 width arm.",
+  "history_policy": "Read old narrative sources from git objects only. Do not restore deleted files. Keep original transcription classification; no new historical confidence intervals.",
+  "excluded": [
+    "hardware execution",
+    "new model fitting",
+    "new path search",
+    "new thresholds",
+    "new resource selection for width results",
+    "pooling studies",
+    "claiming absence of significance is equivalence",
+    "restoring deleted documents",
+    "old Masters repository"
+  ]
+}

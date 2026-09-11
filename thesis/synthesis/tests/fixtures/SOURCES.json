@@ -1,0 +1,6 @@
+{
+  "notice": "Small source-derived test fixtures, not substituted campaign inputs. P6 aggregates preserve CSV values; quantization is a seven-column projection of the published table.",
+  "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+  "real_p6_aggregates.csv": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/aggregates.csv",
+  "real_quantization.csv": "thesis/implementation/thesis_results/quantized_contraction_policy_v1/quantization_circuits.csv"
+}

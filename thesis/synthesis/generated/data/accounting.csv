@@ -1,0 +1,5 @@
+suite,cells,attempts,warmups,measured_success,measured_unsupported,complete_cells
+T,48,288,48,240,0,48
+D,28,168,28,140,0,28
+A,15,120,15,105,0,15
+W,144,864,144,690,30,138

@@ -1,0 +1,30 @@
+{
+  "accounting": {
+    "attempts": 1440,
+    "measured": 1205,
+    "measured_success": 1175,
+    "measured_unsupported": 30,
+    "success": 1404,
+    "unsupported": 36,
+    "warmups": 235
+  },
+  "cells_verified": 235,
+  "final_bootstrap_intervals_reproduced": true,
+  "native_archive_verification": "not performed by synthesis; Git package checksums only",
+  "numerical_qualification": "recorded flag and available scalar bounds checked; statevectors and elementwise tolerance not re-evaluated",
+  "p6_intervals": "imported unchanged; no new inference",
+  "package_checks": [
+    {
+      "path": "thesis/implementation/thesis_results/final_evaluation_v1",
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "verified_members": 594
+    },
+    {
+      "path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1",
+      "ref": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+      "verified_members": 33
+    }
+  ],
+  "paired_comparisons_verified": 453,
+  "summary_rows_verified": 1871
+}

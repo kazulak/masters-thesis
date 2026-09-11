@@ -1,0 +1,4 @@
+# Separate publication environment; do not install into the frozen research venv.
+# Python >=3.11. Byte reproducibility is checked within one identical environment.
+numpy==2.3.5
+matplotlib==3.10.8
