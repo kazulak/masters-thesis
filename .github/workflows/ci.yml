@@ -1,0 +1,76 @@
+name: standalone-thesis-ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  software-and-evidence:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Verify pinned submodules
+        run: |
+          test "$(git -C thesis/implementation/external/QuEST rev-parse HEAD)"             = "9d7618d7263e3bfba433b88cf1eac0647f08fa0a"
+
+          test "$(git -C thesis/implementation/external/SimplePIM rev-parse HEAD)"             = "1d639c53532555f01e9f71d872e7712b166d6cba"
+
+          test "$(git -C thesis/implementation/external/PID-Comm rev-parse HEAD)"             = "cecc39e29e6576ced73b2041db6e357769a6531a"
+
+      - name: Install implementation
+        working-directory: thesis/implementation
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install             -c ci/constraints.txt             -e ".[dev,path-search]"
+
+      - name: Build QuEST CPU runner
+        run: |
+          make -C thesis/implementation/native/quest_cpu
+
+      - name: Build Python wheel
+        working-directory: thesis/implementation
+        run: |
+          python -m pip wheel             --no-build-isolation             --no-deps             --wheel-dir /tmp/quantum-bench-wheel             .
+
+      - name: Run implementation tests
+        run: |
+          make -C thesis/implementation             PYTHON=python             test
+
+      - name: Run Ruff
+        run: |
+          python -m ruff check             thesis/implementation/src             thesis/implementation/tests             thesis/implementation/scripts
+
+      - name: Verify frozen P6 audit package
+        working-directory: thesis/implementation/thesis_results/upmem_cost_guided_path_v1
+        run: |
+          sha256sum -c SHA256SUMS
+          python3 tools/test_p6_readout.py
+
+      - name: Run software-only plan/run/verify/report smoke
+        working-directory: thesis/implementation
+        run: |
+          RUN_ROOT="$RUNNER_TEMP/qbench-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PLAN_DIR="$RUN_ROOT/plan"
+          RUN_DIR="$RUN_ROOT/run"
+          REPORT_DIR="$RUN_ROOT/report"
+
+          mkdir -p "$RUN_ROOT"
+
+          make PYTHON=python plan             CONFIG=configs/tn_benchmark_reset.yml             OUTPUT="$PLAN_DIR"
+
+          make PYTHON=python run             CONFIG=configs/tn_benchmark_reset.yml             OUTPUT="$RUN_DIR"
+
+          make PYTHON=python verify             INPUT="$RUN_DIR"
+
+          make PYTHON=python report             INPUT="$RUN_DIR"             REPORT_OUTPUT="$REPORT_DIR"

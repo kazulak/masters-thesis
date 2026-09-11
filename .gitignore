@@ -1,42 +1,22 @@
-*.exe
-*.json0
-*.class
-*.pyc
-# Wirtualne środowiska
-venv/
+# Standalone repository local environment
 .venv/
-env/
-.env/
+thesis/.venv/
 
-# Pliki cache Pythona
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Pliki generowane przez edytory
-.vscode/
+# Local editor/OS state
+.DS_Store
 .idea/
+.vscode/
 
-# 1. Ignore the 150+ QuEST build artifacts
-thesis/PIMutation_reconstruction/QuEST_implementation/external/QuEST/build/
-
-# 2. Ignore our own compiled executable
-thesis/PIMutation_reconstruction/QuEST_implementation/bin/
-
-# 3. Ignore our compiled object files
-thesis/PIMutation_reconstruction/QuEST_implementation/src/**/*.o
-thesis/PIMutation_reconstruction/QuEST_implementation/src/*.o
-
-# 4. Ignore Python virtual environments (if you use them later)
-.venv/
+# Python local state outside implementation-specific ignores
 __pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
 
-# Pliki SimplePIM
-bin/
-patched_spim/
-build/
-*.o
-*.so
+# Future release staging; raw archives are release assets, not Git objects
+release-assets/
+*.tar.gz
+*.tar.gz.sha256
 
-
+# Native runtime build artifacts
+thesis/implementation/native/upmem/runtime/bin/

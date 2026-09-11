@@ -1,4 +1,0 @@
-numpy>=1.26.0
-opt_einsum>=3.4.0
-PyYAML>=6.0.0
-
