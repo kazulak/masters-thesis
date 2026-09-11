@@ -51,7 +51,7 @@ def write_csv(path, rows, columns=None):
         w.writerows(rows)
 
 
-def flatten_row(r):
+def flatten_row(r, arm=None):
     row = {
         k: r.get(k)
         for k in (
@@ -69,7 +69,7 @@ def flatten_row(r):
             'rss_max_kib',
         )
     }
-    a = r.get('arm', {})
+    a = r.get('arm') or arm or {}
     m = r.get('metrics', {})
     v = r.get('validation', {})
     mm = m.get('measurement', {})
@@ -156,7 +156,20 @@ def main():
                 file = root / f"b{block:02d}__{e['case_id']}__{e['arm_id']}.json"
                 if file.exists():
                     raw = f.read(file)
-                    r = flatten_row(raw)
+                    sidecar = Path(str(file) + '.issued.json')
+                    f.require(sidecar.exists(), f'missing issued sidecar: {sidecar}')
+                    issued = f.read(sidecar)
+                    f.require(issued.get('suite') == suite, f'issued suite mismatch: {sidecar}')
+                    f.require(issued.get('case_id') == e['case_id'], f'issued case_id mismatch: {sidecar}')
+                    f.require(issued.get('arm_id') == e['arm_id'], f'issued arm_id mismatch: {sidecar}')
+                    f.require(issued.get('block') == block, f'issued block mismatch: {sidecar}')
+                    f.require(issued.get('warmup') == (block < d['warmups']), f'issued warmup mismatch: {sidecar}')
+                    r = flatten_row(raw, arm=issued.get('arm') or e.get('arm'))
+                    r['suite'] = issued['suite']
+                    r['case_id'] = issued['case_id']
+                    r['arm_id'] = issued['arm_id']
+                    r['block'] = issued['block']
+                    r['warmup'] = issued['warmup']
                 else:
                     r = dict(
                         suite=suite,
@@ -501,6 +514,9 @@ def figures(out, times, coverage, bycase, rows):
         fig.savefig(folder / f'A_{cid}.svg', metadata={'Date': None, 'Creator': 'masters-thesis final evaluation v2'})
         fig.savefig(folder / f'A_{cid}.png', dpi=180)
         plt.close(fig)
+    for svg in folder.glob('*.svg'):
+        lines = svg.read_text(encoding='utf-8').splitlines()
+        svg.write_text('\n'.join(line.rstrip() for line in lines) + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':
