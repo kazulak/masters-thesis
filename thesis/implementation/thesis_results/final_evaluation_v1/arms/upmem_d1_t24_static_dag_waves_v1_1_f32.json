@@ -1,0 +1,1 @@
+{"backend":"upmem","dpus":1,"fuse":true,"geometry":"panel_only_v1","policy":"split_complex_float32_v1","schedule":"static_dag_waves_v1","tasklets":24,"threads":1}
