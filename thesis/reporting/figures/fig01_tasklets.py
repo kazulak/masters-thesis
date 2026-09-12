@@ -71,7 +71,7 @@ def main():
         ax.grid(axis="y", color="#e3e3e3", linewidth=0.45, zorder=0)
 
     fig.supxlabel("Tasklets $T$ (one physical DPU)", fontsize=8)
-    fig.supylabel("Prepared-call speedup vs T1", fontsize=8)
+    fig.supylabel("Speedup relative to 1 tasklet (×)", fontsize=8)
     save_figure(fig, "fig01_tasklets")
 
 

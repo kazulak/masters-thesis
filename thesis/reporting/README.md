@@ -30,12 +30,16 @@ The generated files are tracked; rebuilding overwrites only those figure files.
 
 **Caption:** Tasklet scaling across the six primary circuit families on one
 physical DPU, using float32, serial unfused execution. Points show each circuit's
-T1 prepared-call median divided by its median at the indicated tasklet count;
-each median summarizes five measured blocks. Whiskers transform runtime median
-± raw median absolute deviation with the T1 median held fixed. They describe
-runtime dispersion, not confidence intervals, and omit baseline uncertainty.
-T1 self-normalizes to exactly 1× with zero whisker. EDC uses n=17; the other
-families use n=18. The dashed horizontal line marks 1×.
+median execution-call wall time at one tasklet divided by its median at the
+indicated tasklet count. This time includes opening the UPMEM session, execution
+and transfers, output materialization, and closing the session. Circuit lowering,
+contraction-path search, DAG construction and physical mapping are excluded.
+Each median summarizes five measured blocks. Whiskers transform runtime median
+± raw median absolute deviation with the one-tasklet median held fixed. They
+describe runtime dispersion, not confidence intervals, and omit baseline
+uncertainty. The one-tasklet point self-normalizes to exactly 1× with zero
+whisker. EDC uses 17 qubits; the other families use 18 qubits. The dashed
+horizontal line marks 1×.
 
 F1 reads only canonical `unified_final_v4/readout/T.csv` and shows all 144 primary
 family/tasklet points. Supplementary Stress results are not part of this figure.
