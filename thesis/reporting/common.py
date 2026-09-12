@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt  # noqa: E402 - select headless backend first
 ROOT = Path(__file__).resolve().parents[2]
 V4_RESULTS = ROOT / "thesis/implementation/thesis_results/unified_final_v4"
 V4_READOUT = V4_RESULTS / "readout"
-P6_RESULTS = ROOT / "thesis/implementation/thesis_results/upmem_cost_guided_path_v1"
+PATH_RESULTS = ROOT / "thesis/implementation/thesis_results/upmem_cost_guided_path_v1"
 FIGURE_OUTPUT = Path(__file__).resolve().parent / "generated/figures"
+TABLE_OUTPUT = Path(__file__).resolve().parent / "generated/tables"
 PRIMARY_FAMILIES = ("bb84", "bv", "edc", "hs", "qrng", "xor")
 
 

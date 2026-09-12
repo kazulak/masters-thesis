@@ -1,4 +1,4 @@
-"""F6: all five final routes and the declared R-path admission frontier."""
+"""F5: all five final routes and the declared R-path admission frontier."""
 import csv
 import json
 import math
@@ -113,7 +113,7 @@ def main():
                frameon=False, fontsize=7, handlelength=2.2, columnspacing=1.5)
     fig.supxlabel("Circuit width (qubits)", fontsize=8)
     fig.supylabel("Cached-path job-to-state time (s)", fontsize=8)
-    save_figure(fig, "fig06_final_cpu")
+    save_figure(fig, "fig05_final_cpu")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-"""F5: accepted path-method contrasts and their frozen bootstrap intervals."""
+"""App01: accepted path-method contrasts and their frozen bootstrap intervals."""
 import csv
 import math
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from common import P6_RESULTS, publication_style, save_figure  # noqa: E402
+from common import PATH_RESULTS, publication_style, save_figure  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
@@ -22,9 +22,9 @@ TITLES = (
 
 
 def main():
-    with (P6_RESULTS / "readout/aggregates.csv").open(newline="", encoding="utf-8") as source:
+    with (PATH_RESULTS / "readout/aggregates.csv").open(newline="", encoding="utf-8") as source:
         aggregate_rows = list(csv.DictReader(source))
-    with (P6_RESULTS / "readout/contrasts.csv").open(newline="", encoding="utf-8") as source:
+    with (PATH_RESULTS / "readout/contrasts.csv").open(newline="", encoding="utf-8") as source:
         cell_rows = list(csv.DictReader(source))
 
     aggregates, cells = {}, {}
@@ -100,7 +100,7 @@ def main():
     fig.legend(handles=handles, loc="outside upper center", ncol=3, frameon=False,
                fontsize=7.5, title="Float32 · 8 tasklets per DPU", title_fontsize=8)
     fig.supxlabel("Execution speedup (×; higher is faster)", fontsize=8)
-    save_figure(fig, "fig05_path_selection")
+    save_figure(fig, "app01_path_selection")
 
 
 if __name__ == "__main__":
