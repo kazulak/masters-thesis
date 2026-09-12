@@ -25,4 +25,4 @@
   )
 }
 #v(4pt)
-#text(size: 7.5pt, fill: luma(80), "Note: Selection rule: minimum median prepared-call time across calibration blocks 1..5, breaking ties by smaller DPU count then smaller tasklet count. 12 primary winners + 2 supplementary Stress policy selections. Quality-unqualified int8 candidates are barred from selection. Selections frozen before final comparison phase.")
+#text(size: 7.5pt, fill: luma(80), "Note: Selection rule: minimum median prepared-call time across calibration blocks 1..5, breaking ties by smaller DPU count then smaller tasklet count. 12 primary winners + 2 supplementary Stress policy selections. Frozen receipt rule: greedy calibration, blocks 1..5, min median then D then T; no quality tuning for int8. Resource selection was performance-based under the frozen execution/correctness contract; no post-hoc approximation-quality threshold was introduced. Selections frozen before final comparison phase.")

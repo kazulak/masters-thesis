@@ -4,20 +4,22 @@
 #{
   set text(size: 8pt)
   table(
-    columns: (1fr, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr,),
+    columns: (1fr, 1fr, 1fr, 1fr, 1fr,),
     inset: 4pt,
     stroke: 0.35pt,
-    table.header(repeat: true, [Evaluation Phase / Suite], [Planned Cells], [Planned Slots], [Issued Slots], [Successful], [Unsupported], [Dedup Avoided]),
-    [Physical UPMEM Qualification], [18], [108], [108], [108], [0], [0],
-    [QuEST CPU Qualification], [32], [32], [32], [32], [0], [0],
-    [Simulation Qualification], [18], [108], [108], [108], [0], [0],
-    [R-Path Qualification (Tiny)], [4], [4], [4], [4], [0], [0],
-    [Calibration Phase C (Blocks 0..7)], [434], [2,674], [2,674], [2,674], [0], [714],
-    [Topology Selection (Phase C)], [14 winners], [—], [—], [14], [0], [—],
-    [Shared R-Path Search (52 cases × 128)], [52], [6,656 searches], [6,656], [6,656], [0], [—],
-    [Final Comparison Phase W & S (Blocks 0..5)], [260], [1,560], [1,452], [1,452], [108], [0],
-    [Total Physical UPMEM Campaign], [—], [—], [3,306], [3,306], [108], [714],
+    table.header(repeat: true, [Phase / route], [Planned slots], [Issued], [Successful], [Not issued]),
+    [Physical UPMEM qualification], [108], [108], [108], [0],
+    [QuEST CPU qualification], [32], [32], [32], [0],
+    [Simulator qualification], [108], [108], [108], [0],
+    [Calibration (blocks 0..7)], [2,674], [2,674], [2,674], [0],
+    [Final: UPMEM float32], [312], [276], [276], [36],
+    [Final: UPMEM int8], [312], [276], [276], [36],
+    [Final: NumPy same-DAG], [312], [276], [276], [36],
+    [Final: QuEST P8], [312], [312], [312], [0],
+    [Final: QuEST P1], [312], [312], [312], [0],
+    [Final total (blocks 0..5)], [1,560], [1,452], [1,452], [108],
+    [Total physical UPMEM], [3,406], [3,334], [3,334], [72],
   )
 }
 #v(4pt)
-#text(size: 7.5pt, fill: luma(80), "Note: All planned slots are fully accounted for. Physical slot executions totaled 3,306, strictly below the <= 3,406 physical slot limit. 108 final slots were not issued due to verified int8 DPU/MRAM capacity boundaries. Zero unresolved slots. Dual archives A and B verified byte-identical across all 8,279 retained files.")
+#text(size: 7.5pt, fill: luma(80), "Note: Physical UPMEM issued: 3,334 ≤ 3,406 prospective ceiling. Final unsupported slots: 108; 72 are physical UPMEM allocations. Cause: no selected admissible R path for 6 maximum-width cases; both UPMEM routes and NumPy same-DAG depend on that path. R searches: 52; proposals: 6,656; selected paths: 46; no-path outcomes: 6. There were also 4 tiny qualification searches. UPMEM qualification: 54 configurations, each replayed twice per backend. Calibration: 434 cells, 714 duplicate slots avoided. Final: 260 cells. No unresolved slots or physical execution failures. The frozen retention receipt records two verified archive copies containing 8,288 files each.")

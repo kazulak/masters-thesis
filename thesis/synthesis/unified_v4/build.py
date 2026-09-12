@@ -9,18 +9,17 @@ Outputs figures (SVG+PNG) and Typst tables (.typ) under:
 from __future__ import annotations
 
 import ast
+import argparse
 import csv
 import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import sys
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Styling configuration adhering to thesis publication standard
 matplotlib.rcdefaults()
@@ -41,6 +40,8 @@ matplotlib.rcParams.update({
 })
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT / 'evaluation/unified_v4'))
+import readout as v4_readout  # noqa: E402 - standalone evaluator module
 CANONICAL_DIR = REPO_ROOT / 'thesis' / 'implementation' / 'thesis_results' / 'unified_final_v4'
 SYNTHESIS_DIR = REPO_ROOT / 'thesis' / 'synthesis' / 'unified_v4'
 FIG_DIR = SYNTHESIS_DIR / 'figures'
@@ -73,6 +74,27 @@ CALIBRATION_QUBITS = {
     'qrng': 18,
     'xor': 18,
 }
+
+
+def ablation_labels(manifest: dict) -> dict:
+    """Use the frozen arm definitions shared by all primary-family A views."""
+    cells = {c['cell_id']: c for c in manifest['calibration_cells']}
+    labels = {}
+    for stage in ('A0', 'A1', 'A2', 'A3', 'A4'):
+        views = [v for v in manifest['calibration_views'] if v['view'] == 'A'
+                 and v['point'] == stage and v['cohort'] == 'primary']
+        v4_readout.require({v['case_id'] for v in views} == set(CALIBRATION_CASES.values()), 'incomplete A-stage families')
+        arms = [cells[v['cell_id']]['arm'] for v in views]
+        v4_readout.require(all(a == arms[0] for a in arms), 'inconsistent A-stage arms')
+        arm = arms[0]
+        schedule = {'serial_nodes_v1': 'serial', 'static_dag_waves_v1': 'static-DAG'}[arm['schedule']]
+        fusion = 'fused' if arm['fuse'] else 'unfused'
+        topology = f"D{arm['dpus']}/T{arm['tasklets']}"
+        description = f'{topology} {schedule} {fusion}'
+        if arm['fuse']:
+            description += ' (complex launch fusion / four-product fusion)'
+        labels[stage] = {'short': f'{stage}\n{topology}\n{schedule}\n{fusion}', 'description': description}
+    return labels
 
 def gmean(vals: list[float]) -> float:
     pos = [v for v in vals if v > 0]
@@ -231,11 +253,11 @@ def build_figure_f2(d_rows: list[dict]) -> None:
 # -----------------------------------------------------------------------------
 # Figure F3: Ablation Scaling (2x3)
 # -----------------------------------------------------------------------------
-def build_figure_f3(a_rows: list[dict]) -> None:
+def build_figure_f3(a_rows: list[dict], labels: dict) -> None:
     fig, axes = plt.subplots(2, 3, figsize=(10.5, 6.2), sharex=True, sharey=True)
     letters = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
     steps = ['A0', 'A1', 'A2', 'A3', 'A4']
-    step_labels = ['A0\nBase', 'A1\n+T24', 'A2\n+D4', 'A3\n+Fuse', 'A4\n+DAG']
+    step_labels = [labels[s]['short'] for s in steps]
     colors = ['#7f7f7f', '#1f77b4', '#2ca02c', '#ff7f0e', '#9467bd']
     
     for idx, fam in enumerate(PRIMARY_FAMILIES):
@@ -262,7 +284,7 @@ def build_figure_f3(a_rows: list[dict]) -> None:
             
         ax.axhline(1.0, color='#888888', linestyle='--', linewidth=0.8)
         ax.set_xticks(range(5))
-        ax.set_xticklabels(step_labels)
+        ax.set_xticklabels(step_labels, fontsize=6.5)
         ax.set_ylim(0, 1.25)
         ax.set_title(f'{letter} {fam_title} ($n={n_q}$)', fontweight='semibold')
         ax.grid(True, axis='y', linestyle='--', alpha=0.5, linewidth=0.5)
@@ -413,7 +435,15 @@ def build_figure_f5() -> None:
 # -----------------------------------------------------------------------------
 # Figure F6: LAST Comparison All-Family Width Curves (2x3)
 # -----------------------------------------------------------------------------
-def build_figure_f6(w_rows: list[dict]) -> None:
+def build_figure_f6(w_rows: list[dict], final_manifest: dict, path_records: list[dict]) -> None:
+    paths = {p['case_id']: p for p in path_records}
+    wanted = {(c['case_id'], c['role']) for c in final_manifest['cells']
+              if c['view'] == 'W' and c['eligible_for_runtime_admission']}
+    observed = [(r['case_id'], r['role']) for r in w_rows]
+    v4_readout.require(len(observed) == len(set(observed)) and set(observed) == wanted,
+                       'missing, duplicate or unexpected final width timings')
+    for r in w_rows:
+        v4_readout.pc.positive(float(r['median_job_to_state_cached_path_s']), 'invalid width timing')
     fig, axes = plt.subplots(2, 3, figsize=(10.5, 6.2), sharex=False, sharey=True)
     letters = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
     
@@ -464,12 +494,18 @@ def build_figure_f6(w_rows: list[dict]) -> None:
         ax.plot(ns_int8, [int8_data[n] for n in ns_int8], color='#2ca02c', marker='s',
                 markersize=4.5, linestyle='--', linewidth=1.4, label='UPMEM int8 (selected)')
         
-        # Unsupported point at highest n (e.g. n=26 or n=25)
-        max_n = max(all_ns)
-        if max_n not in f32_data:
-            # Mark unsupported boundary explicitly (never zero runtime)
-            ax.plot([max_n], [40.0], marker='x', markersize=7, color='#d62728', markeredgewidth=1.8)
-            ax.text(max_n, 48.0, 'MRAM\nlimit', color='#d62728', fontsize=6.5, ha='center', va='bottom', fontweight='bold')
+        # A planning/admission outcome has no runtime ordinate.
+        for cid, path in paths.items():
+            if cid.startswith(f'{fam}_n') and path['status'] != 'selected':
+                v4_readout.require(path['status'] == 'no_selected_R_path'
+                                   and path['reason'] == 'no_admitted_candidate', 'unknown frontier reason')
+                n = int(cid.split('_n')[1])
+                v4_readout.require(n not in f32_data and n not in int8_data
+                                   and n in p8_data and n in p1_data, 'frontier route mismatch')
+                ax.axvspan(n - 0.4, n + 0.4, color='#d62728', alpha=0.08, linewidth=0)
+                ax.text(n + 0.3, 0.97, 'R path unavailable\n(no admitted candidate)',
+                        transform=ax.get_xaxis_transform(), color='#a82223', fontsize=6.5,
+                        ha='right', va='top', fontweight='bold')
             
         ax.set_yscale('log')
         ax.set_xticks(all_ns)
@@ -553,16 +589,8 @@ def build_table_t2(d_rows: list[dict]) -> None:
 # -----------------------------------------------------------------------------
 # Typst Table T3: Cumulative Ablation
 # -----------------------------------------------------------------------------
-def build_table_t3(a_rows: list[dict], agg_rows: list[dict]) -> None:
+def build_table_t3(a_rows: list[dict], agg_rows: list[dict], labels: dict) -> None:
     headers = ['Stage', 'Architecture / Optimization', 'Incremental Ratio', 'Cumulative vs A0', 'Time Reduction', 'GeoMean Speedup']
-    
-    stage_meta = [
-        ('A0', '1 DPU, 1 tasklet, serial, unfused', '1.00×', '1.00×', '0.0%', '1.00×'),
-        ('A1', '1 DPU, 24 tasklets, serial, unfused (Tasklet parallelism)', '', '', '', ''),
-        ('A2', '4 DPUs, 8 tasklets, serial, unfused (Multi-DPU scaling)', '', '', '', ''),
-        ('A3', '4 DPUs, 8 tasklets, serial, fused (Gate fusion)', '', '', '', ''),
-        ('A4', '4 DPUs, 8 tasklets, static DAG waves, fused (DAG scheduling)', '', '', '', ''),
-    ]
     
     # Calculate geometric means across the 6 primary families
     steps = ['A0', 'A1', 'A2', 'A3', 'A4']
@@ -582,7 +610,7 @@ def build_table_t3(a_rows: list[dict], agg_rows: list[dict]) -> None:
         
     rows = []
     for idx, s in enumerate(steps):
-        name, desc, _, _, _, _ = stage_meta[idx]
+        name, desc = s, labels[s]['description']
         cum_gm = gmean(cum_by_step[s])
         time_red = 100.0 * (1.0 - 1.0 / cum_gm)
         if s == 'A0':
@@ -677,7 +705,9 @@ def build_table_t5(selection_data: dict) -> None:
     note = (
         'Selection rule: minimum median prepared-call time across calibration blocks 1..5, breaking ties by smaller DPU count '
         'then smaller tasklet count. 12 primary winners + 2 supplementary Stress policy selections. '
-        'Quality-unqualified int8 candidates are barred from selection. Selections frozen before final comparison phase.'
+        f"Frozen receipt rule: {selection_data['rule']}. "
+        'Resource selection was performance-based under the frozen execution/correctness contract; '
+        'no post-hoc approximation-quality threshold was introduced. Selections frozen before final comparison phase.'
     )
     content = make_typst_table('Calibrated Topology Selection Winners (Phase C)', headers, rows, note)
     (TAB_DIR / 'T5_selection_winners.typ').write_text(content, encoding='utf-8')
@@ -688,62 +718,64 @@ def build_table_t5(selection_data: dict) -> None:
 # Typst Table T6: Cold and Amortized Costs
 # -----------------------------------------------------------------------------
 def build_table_t6(cold_rows: list[dict]) -> None:
-    headers = ['Workload', 'Qubits ($n$)', 'Cold Planning (s)', 'Steady Prepared (s)', 'Amortized $k=1$ (s)', 'Amortized $k=10$ (s)', 'Amortized $k=100$ (s)']
+    headers = ['Workload', '$n$', 'R-path preparation/search (s)', 'Cached-path job-to-state (s)',
+               'Estimated cost $k=1$ (s)', '$k=10$ (s)', '$k=100$ (s)']
     rows = []
-    
-    # Pick calibration cases and selected widths
-    target_cids = [
-        'bb84_n08', 'bb84_n18', 'bb84_n24',
-        'bv_n08', 'bv_n18', 'bv_n24',
-        'edc_n07', 'edc_n17', 'edc_n23',
-        'hs_n08', 'hs_n18', 'hs_n24',
-        'qrng_n08', 'qrng_n18', 'qrng_n24',
-        'xor_n08', 'xor_n18', 'xor_n24',
-    ]
-    
-    for cid in target_cids:
-        match = next((r for r in cold_rows if r['case_id'] == cid), None)
-        if not match:
+    for r in cold_rows:
+        if r['family'] not in PRIMARY_FAMILIES:
             continue
-        fam = FAMILY_TITLES.get(match['family'], match['family'])
-        n_val = match['n']
-        plan_s = float(match['planning_once_s'])
-        exec_s = float(match['median_cached_s'])
-        k1 = float(match['amortized_k1'])
-        k10 = float(match['amortized_k10'])
-        k100 = float(match['amortized_k100'])
-        rows.append([f'{fam} ($n={n_val}$)', str(n_val), f'{plan_s:.2f}s', f'{exec_s:.3f}s', f'{k1:.2f}s', f'{k10:.2f}s', f'{k100:.3f}s'])
-        
+        # Three supported reference widths plus the admission frontier per family.
+        widths = (7, 17, 23) if r['family'] == 'edc' else (8, 18, 24)
+        unavailable = r['path_status'] != 'selected'
+        if int(r['n']) not in widths and not unavailable:
+            continue
+        values = ['—'] * 4 if unavailable else [
+            f"{float(r['median_cached_s']):.3f}", f"{float(r['amortized_k1']):.2f}",
+            f"{float(r['amortized_k10']):.2f}", f"{float(r['amortized_k100']):.3f}"]
+        if unavailable:
+            v4_readout.require(all(r[k] in ('', None) for k in ('median_cached_s', 'cold_estimate',
+                                'amortized_k1', 'amortized_k10', 'amortized_k100')), 'no-path cost must be unavailable')
+        rows.append([FAMILY_TITLES[r['family']], str(r['n']), f"{float(r['planning_once_s']):.2f}", *values])
     note = (
-        'Cold planning time reflects single-shot offline greedy contraction path search. '
-        'Steady execution reflects cached-path prepared-call time on physical UPMEM DPUs. '
-        'Amortized cost per execution is computed as (T_plan + k * T_exec) / k across repeated invocations.'
+        'R-path preparation/search is the one-time offline cost of obtaining the sealed final R contraction path; '
+        'unsuccessful searches retain their measured search cost. Cached-path job-to-state measures execution from '
+        'the preloaded circuit specification to an owned contiguous complete statevector with the contraction path already available. '
+        'Amortized values are derived as (T_search + k T_cached) / k; they are derived cost estimates rather than separately '
+        'timed cold executions. Rows with em dashes: no admitted R path; executable cached-path cost unavailable.'
     )
-    content = make_typst_table('Cold-Start Planning Overhead and Amortized Execution Costs', headers, rows, note)
+    content = make_typst_table('R-Path Preparation and Estimated Amortized Simulation Costs', headers, rows, note)
     (TAB_DIR / 'T6_cold_amortized_costs.typ').write_text(content, encoding='utf-8')
     print('Saved table: T6_cold_amortized_costs.typ')
 
 
-# -----------------------------------------------------------------------------
-# Typst Table T7: Campaign Accounting
-# -----------------------------------------------------------------------------
-def build_table_t7() -> None:
-    headers = ['Evaluation Phase / Suite', 'Planned Cells', 'Planned Slots', 'Issued Slots', 'Successful', 'Unsupported', 'Dedup Avoided']
-    rows = [
-        ['Physical UPMEM Qualification', '18', '108', '108', '108', '0', '0'],
-        ['QuEST CPU Qualification', '32', '32', '32', '32', '0', '0'],
-        ['Simulation Qualification', '18', '108', '108', '108', '0', '0'],
-        ['R-Path Qualification (Tiny)', '4', '4', '4', '4', '0', '0'],
-        ['Calibration Phase C (Blocks 0..7)', '434', '2,674', '2,674', '2,674', '0', '714'],
-        ['Topology Selection (Phase C)', '14 winners', '—', '—', '14', '0', '—'],
-        ['Shared R-Path Search (52 cases × 128)', '52', '6,656 searches', '6,656', '6,656', '0', '—'],
-        ['Final Comparison Phase W & S (Blocks 0..5)', '260', '1,560', '1,452', '1,452', '108', '0'],
-        ['Total Physical UPMEM Campaign', '—', '—', '3,306', '3,306', '108', '714'],
-    ]
+def build_table_t7(accounting: dict) -> None:
+    a = accounting
+    headers = ['Phase / route', 'Planned slots', 'Issued', 'Successful', 'Not issued']
+    rows = []
+    for label, key in [('Physical UPMEM qualification', 'physical'), ('QuEST CPU qualification', 'quest'),
+                       ('Simulator qualification', 'simulator')]:
+        n = a['qualification'][key]
+        rows.append([label, *[f'{n:,}'] * 3, '0'])
+    labels = {'upmem_f32': 'UPMEM float32', 'upmem_int8': 'UPMEM int8', 'numpy_f32_p1': 'NumPy same-DAG',
+              'quest32_p8': 'QuEST P8', 'quest32_p1': 'QuEST P1'}
+    for label, counts in [('Calibration (blocks 0..7)', a['calibration']),
+                           *((f"Final: {labels[r]}", a['routes'][r]) for r in v4_readout.FINAL_ROLES),
+                           ('Final total (blocks 0..5)', a['final'])]:
+        rows.append([label, *(f"{counts[k]:,}" for k in ('planned', 'issued', 'success', 'not_issued'))])
+    rows.append(['Total physical UPMEM', f"{a['physical']['ceiling']:,}",
+                 f"{a['physical']['issued']:,}", f"{a['physical']['issued']:,}",
+                 f"{a['physical']['final']['not_issued']:,}"])
+    p = a['paths']
     note = (
-        'All planned slots are fully accounted for. Physical slot executions totaled 3,306, strictly below the <= 3,406 physical slot limit. '
-        '108 final slots were not issued due to verified int8 DPU/MRAM capacity boundaries. '
-        'Zero unresolved slots. Dual archives A and B verified byte-identical across all 8,279 retained files.'
+        f"Physical UPMEM issued: {a['physical']['issued']:,} ≤ {a['physical']['ceiling']:,} prospective ceiling. "
+        f"Final unsupported slots: {a['final']['not_issued']}; {a['physical']['final']['not_issued']} are physical UPMEM allocations. "
+        f"Cause: no selected admissible R path for {p['no_selected']} maximum-width cases; both UPMEM routes and NumPy same-DAG depend on that path. "
+        f"R searches: {p['searches']}; proposals: {p['proposals']:,}; selected paths: {p['selected']}; no-path outcomes: {p['no_selected']}. "
+        f"There were also {a['qualification']['tiny_r_searches']} tiny qualification searches. "
+        f"UPMEM qualification: {a['qualification']['configurations']} configurations, each replayed twice per backend. "
+        f"Calibration: {a['calibration_cells']} cells, {a['deduplicated_slots']} duplicate slots avoided. "
+        f"Final: {a['final_cells']} cells. No unresolved slots or physical execution failures. "
+        f"The frozen retention receipt records two verified archive copies containing {a['archive_files_count']:,} files each."
     )
     content = make_typst_table('Unified Evaluation Campaign Accounting and Verification', headers, rows, note)
     (TAB_DIR / 'T7_campaign_accounting.typ').write_text(content, encoding='utf-8')
@@ -767,10 +799,10 @@ All figures and tables read exclusively from canonical published evaluation resu
 |---|---|---|---|
 | **F1** | `figures/F1_tasklet_speedup.svg` | `figures/F1_tasklet_speedup.png` | 2×3 primary-family tasklet speedup (T1..T24) on 1 DPU, with ideal linear scaling and error bars. |
 | **F2** | `figures/F2_dpu_speedup.svg` | `figures/F2_dpu_speedup.png` | 2×3 primary-family DPU speedup across D1..D64 at T8 and T24, showing scaling saturation beyond 16 DPUs. |
-| **F3** | `figures/F3_ablation_scaling.svg` | `figures/F3_ablation_scaling.png` | 2×3 normalized runtime across cumulative stages A0..A4 (Base -> Tasklets -> DPUs -> Fusion -> DAG). |
+| **F3** | `figures/F3_ablation_scaling.svg` | `figures/F3_ablation_scaling.png` | 2×3 normalized runtime across A0..A4: D1/T1, D1/T8, D4/T8, complex launch fusion / four-product fusion, then static-DAG scheduling. |
 | **F4** | `figures/F4_quantization_tradeoff.svg` | `figures/F4_quantization_tradeoff.png` | 2×3 physical quantization execution-cost ratios ($t_{\\mathrm{f32}} / t_{\\mathrm{int8}}$) at matched topology. |
 | **F5** | `figures/F5_p6_transfer.svg` | `figures/F5_p6_transfer.png` | 2×2 forest plot of original P6 contrasts (G/F, F/R, R/U, G/U) with paired bootstrap intervals. |
-| **F6** | `figures/F6_final_comparison.svg` | `figures/F6_final_comparison.png` | 2×3 LAST comparison width curves: selected UPMEM f32, UPMEM int8, QuEST CPU P8 and P1, with MRAM limit marker. |
+| **F6** | `figures/F6_final_comparison.svg` | `figures/F6_final_comparison.png` | 2×3 LAST comparison width curves: selected UPMEM f32, UPMEM int8, QuEST CPU P8 and P1, with an axis-relative R-path admission frontier; QuEST continues through the largest widths. |
 
 ## Table Inventory
 
@@ -781,16 +813,34 @@ All figures and tables read exclusively from canonical published evaluation resu
 | **T3** | `tables/T3_ablation_cumulative.typ` | Cumulative architectural and optimization ablation (A0..A4) speedup and time reduction. |
 | **T4** | `tables/T4_quantization_error_cost.typ` | Quantization execution speedup and numerical accuracy disclosure (relative L2, fidelity). |
 | **T5** | `tables/T5_selection_winners.typ` | Deterministic topology selection winners (12 primary + 2 supplementary Stress). |
-| **T6** | `tables/T6_cold_amortized_costs.typ` | Cold-start planning overhead versus steady execution times and amortized costs ($k=1, 10, 100$). |
+| **T6** | `tables/T6_cold_amortized_costs.typ` | One-time final R-path preparation/search cost, cached-path job-to-state time, and derived cost estimates ($k=1, 10, 100$); no-path execution costs are unavailable. |
 | **T7** | `tables/T7_campaign_accounting.typ` | Complete campaign execution accounting, slot reconciliation, and archive verification. |
 
+One-rank DPU scaling saturated after D16, with lower aggregate speedup at D32 and D64.
+The executor is host-mediated. Attribution to H2D/D2H, launches, host work or scheduling
+requires separate measured evidence; the scaling curve alone does not establish a dominant cause.
+
+The original published evidence commit is `d886e3b7e04a4c3be4a6d4d463206b66f5c0c2a0`.
+`readout/accounting.json` reconciles route/status/reason counts against frozen manifests and paths.
+Neither this generator nor the corrected readout reruns a hardware measurement or campaign path search.
+
 ## Verification
+
+Run the dedicated generator regressions:
+```bash
+python3 -m unittest discover -s thesis/synthesis/unified_v4/tests -v
+```
 
 To regenerate all figures, tables, and verify checksums:
 ```bash
 python3 thesis/synthesis/unified_v4/build.py
-sha256sum -c thesis/synthesis/unified_v4/SHA256SUMS
+(cd thesis/synthesis/unified_v4 && sha256sum -c SHA256SUMS)
 ```
+
+For isolated rebuilds use `--output /new/directory` and optionally
+`--readout /new/readout-directory`; `--canonical` selects the frozen evidence directory.
+The output contains figures, tables, this README, and relative checksum entries.
+Compile each self-contained table in a landscape A4 proof with 12 mm margins for inspection.
 """
     (SYNTHESIS_DIR / 'README.md').write_text(readme_content, encoding='utf-8')
     print('Saved README.md')
@@ -827,26 +877,47 @@ def build_checksums() -> None:
 # Main Runner
 # -----------------------------------------------------------------------------
 def main() -> None:
+    global CANONICAL_DIR, SYNTHESIS_DIR, FIG_DIR, TAB_DIR
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--canonical', type=Path, default=CANONICAL_DIR)
+    parser.add_argument('--readout', type=Path, help='Derived readout directory; defaults to canonical/readout')
+    parser.add_argument('--output', type=Path, help='New isolated output directory; omitted uses the publication directory')
+    args = parser.parse_args()
+    CANONICAL_DIR = args.canonical.resolve()
+    readout_dir = args.readout.resolve() if args.readout else CANONICAL_DIR / 'readout'
+    if args.output:
+        SYNTHESIS_DIR = args.output.resolve()
+        v4_readout.require(not SYNTHESIS_DIR.exists(), 'isolated output directory already exists')
+    FIG_DIR, TAB_DIR = SYNTHESIS_DIR / 'figures', SYNTHESIS_DIR / 'tables'
+    manifest = v4_readout.read_json(CANONICAL_DIR / 'manifest/manifest.json')
+    final_manifest = v4_readout.read_json(CANONICAL_DIR / 'final_manifest.json')
+    paths = v4_readout.read_json(CANONICAL_DIR / 'path_records.json')
+    accounting = v4_readout.derive_accounting(
+        manifest, final_manifest, v4_readout.read_json(CANONICAL_DIR / 'calibration_rows.json'),
+        v4_readout.read_json(CANONICAL_DIR / 'final_rows.json'), paths,
+        v4_readout.read_json(CANONICAL_DIR / 'retention.json'))
+    v4_readout.require(accounting == v4_readout.read_json(readout_dir / 'accounting.json'), 'stale accounting readout')
+    labels = ablation_labels(manifest)
     print('=== Unified Evaluation v4 Publication Synthesis Build ===')
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     TAB_DIR.mkdir(parents=True, exist_ok=True)
     
     # Load canonical readout files
-    with open(CANONICAL_DIR / 'readout' / 'T.csv') as f:
+    with open(readout_dir / 'T.csv') as f:
         t_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'D.csv') as f:
+    with open(readout_dir / 'D.csv') as f:
         d_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'A.csv') as f:
+    with open(readout_dir / 'A.csv') as f:
         a_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'Q.csv') as f:
+    with open(readout_dir / 'Q.csv') as f:
         q_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'W.csv') as f:
+    with open(readout_dir / 'W.csv') as f:
         w_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'aggregates.csv') as f:
+    with open(readout_dir / 'aggregates.csv') as f:
         agg_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'cold_cost.csv') as f:
+    with open(readout_dir / 'cold_cost.csv') as f:
         cold_rows = list(csv.DictReader(f))
-    with open(CANONICAL_DIR / 'readout' / 'observations.csv') as f:
+    with open(readout_dir / 'observations.csv') as f:
         obs_rows = list(csv.DictReader(f))
     with open(CANONICAL_DIR / 'selection.json') as f:
         selection_data = json.load(f)
@@ -855,20 +926,20 @@ def main() -> None:
     print('Generating figures F1..F6...')
     build_figure_f1(t_rows)
     build_figure_f2(d_rows)
-    build_figure_f3(a_rows)
+    build_figure_f3(a_rows, labels)
     build_figure_f4(q_rows)
     build_figure_f5()
-    build_figure_f6(w_rows)
+    build_figure_f6(w_rows, final_manifest, paths)
     
     # Build tables T1..T7
     print('Generating Typst tables T1..T7...')
     build_table_t1(t_rows)
     build_table_t2(d_rows)
-    build_table_t3(a_rows, agg_rows)
+    build_table_t3(a_rows, agg_rows, labels)
     build_table_t4(q_rows, obs_rows)
     build_table_t5(selection_data)
     build_table_t6(cold_rows)
-    build_table_t7()
+    build_table_t7(accounting)
     
     # Build README and checksums
     print('Generating README and SHA256SUMS...')

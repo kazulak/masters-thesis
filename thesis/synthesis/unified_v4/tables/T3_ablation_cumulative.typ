@@ -8,11 +8,11 @@
     inset: 4pt,
     stroke: 0.35pt,
     table.header(repeat: true, [Stage], [Architecture / Optimization], [Incremental Ratio], [Cumulative vs A0], [Time Reduction], [GeoMean Speedup]),
-    [A0], [1 DPU, 1 tasklet, serial, unfused], [—], [1.00×], [0.0%], [*1.00×*],
-    [A1], [1 DPU, 24 tasklets, serial, unfused (Tasklet parallelism)], [2.99×], [2.99×], [66.5%], [*2.99×*],
-    [A2], [4 DPUs, 8 tasklets, serial, unfused (Multi-DPU scaling)], [1.21×], [3.62×], [72.3%], [*3.62×*],
-    [A3], [4 DPUs, 8 tasklets, serial, fused (Gate fusion)], [1.69×], [6.10×], [83.6%], [*6.10×*],
-    [A4], [4 DPUs, 8 tasklets, static DAG waves, fused (DAG scheduling)], [1.02×], [6.25×], [84.0%], [*6.25×*],
+    [A0], [D1/T1 serial unfused], [—], [1.00×], [0.0%], [*1.00×*],
+    [A1], [D1/T8 serial unfused], [2.99×], [2.99×], [66.5%], [*2.99×*],
+    [A2], [D4/T8 serial unfused], [1.21×], [3.62×], [72.3%], [*3.62×*],
+    [A3], [D4/T8 serial fused (complex launch fusion / four-product fusion)], [1.69×], [6.10×], [83.6%], [*6.10×*],
+    [A4], [D4/T8 static-DAG fused (complex launch fusion / four-product fusion)], [1.02×], [6.25×], [84.0%], [*6.25×*],
   )
 }
 #v(4pt)

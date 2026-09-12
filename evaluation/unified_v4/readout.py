@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import csv
-import io
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -18,12 +18,15 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import protocol_core as pc
+import protocol_core as pc  # noqa: E402 - standalone script import
 
 FAMILIES = pc.FAMILIES
 FP = pc.FP
 I8 = pc.I8
 FROZEN_IMPLEMENTATION = "f6b570a98a610d41b5b16401a42ce12a94042d38"
+PUBLISHED_RESULT = "d886e3b7e04a4c3be4a6d4d463206b66f5c0c2a0"
+R_ROLES = ("upmem_f32", "upmem_int8", "numpy_f32_p1")
+FINAL_ROLES = (*R_ROLES, "quest32_p8", "quest32_p1")
 
 
 def require(ok: bool, message: str) -> None:
@@ -106,7 +109,157 @@ def write_csv(path: Path | str, rows: list[dict[str, object]], fieldnames: list[
             writer.writerow(formatted)
 
 
-def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
+def derive_accounting(manifest, final_manifest, cal_rows, final_rows, path_records, retention):
+    """Reconcile planned identities and observed outcomes; never infer issues from allocations."""
+    pc.check_seal(manifest)
+    pc.check_seal(final_manifest)
+    for key, expected in {
+        "run_id": final_manifest["run_id"], "implementation_commit": FROZEN_IMPLEMENTATION,
+        "evaluator_commit": final_manifest["evaluation_commit"], "protocol_sha256": manifest["protocol_sha256"],
+        "static_manifest_sha256": manifest["content_sha256"], "selection_sha256": final_manifest["selection_sha256"],
+        "final_manifest_sha256": final_manifest["content_sha256"],
+    }.items():
+        require(retention.get(key) == expected, f"retention identity mismatch: {key}")
+    paths = {p["case_id"]: p for p in path_records}
+    cases = {c["case_id"] for c in final_manifest["cells"]}
+    require(len(paths) == len(path_records) and set(paths) == cases, "missing/duplicate/wrong path cases")
+    for p in path_records:
+        pc.check_seal(p)
+        require(p["selection_sha256"] == final_manifest["selection_sha256"], "path selection mismatch")
+        if p["status"] == "selected":
+            require(p["admitted_candidate_count"] > 0 and p["reason"] is None, "invalid selected path")
+            require(p["path_sha256"] == pc.sha(p["path"]), "selected path bytes mismatch")
+        else:
+            require(p["status"] == "no_selected_R_path" and p["reason"] == "no_admitted_candidate"
+                    and p["admitted_candidate_count"] == 0 and p["path_id"] is None
+                    and p["path_sha256"] is None, "unrecognized path frontier")
+    require(pc.sha(sorted(path_records, key=lambda p: p["case_id"])) == final_manifest["path_records_sha256"],
+            "path records binding mismatch")
+
+    def reconcile(slots, cells, rows, final):
+        wanted = {s["slot_id"]: s for s in slots}
+        cell_map = {c["cell_id"]: c for c in cells}
+        require(len(wanted) == len(slots) and len(cell_map) == len(cells), "duplicate planned identity")
+        require(len(rows) == len(wanted), "incomplete slot ledger")
+        seen = set()
+        counts = defaultdict(Counter)
+        outcomes = Counter()
+        for r in rows:
+            sid = r["slot_id"]
+            require(sid in wanted and sid not in seen, "unexpected/duplicate slot")
+            seen.add(sid)
+            s = wanted[sid]
+            for key in ("cell_id", "case_id", "block", "warmup", "phase", "backend", "protocol_sha256"):
+                require(type(r.get(key)) is type(s[key]) and r[key] == s[key], f"slot identity mismatch: {key}")
+            for key in ("run_id", "evaluation_commit"):
+                require(r.get(key) == final_manifest[key], f"row provenance mismatch: {key}")
+            require(r.get("implementation_commit") == FROZEN_IMPLEMENTATION, "wrong implementation")
+            require(type(r.get("issued")) is bool, "issued must be explicit boolean")
+            cell = cell_map[r["cell_id"]]
+            role = cell["role"] if final else "upmem"
+            if final:
+                require(role in FINAL_ROLES, "unknown final route")
+                path = paths[r["case_id"]]
+                available = role not in R_ROLES or path["status"] == "selected"
+                require(cell["eligible_for_runtime_admission"] is available, "path/cell eligibility mismatch")
+                if role in R_ROLES:
+                    require(cell["selected_path_sha256"] == path["path_sha256"], "route path mismatch")
+            else:
+                available = True
+            expected = (True, "success", None) if available else (False, "not_issued_unsupported", "no_selected_R_path")
+            require((r["issued"], r["status"], r.get("reason")) == expected,
+                    f"inconsistent issued/status/reason for {sid}")
+            if not available:
+                require(all(r.get(k) is None for k in ("prepared_call_s", "job_to_state_cached_path_s", "job_to_state_s")),
+                        "unsupported slot has runtime")
+            elif final:
+                pc.positive(r.get("job_to_state_cached_path_s"), "missing cached job-to-state timing")
+            c = counts[role]
+            c["planned"] += 1
+            c["issued"] += int(r["issued"])
+            c["success"] += int(r["status"] == "success")
+            c["not_issued"] += int(not r["issued"])
+            outcomes[(role, r["issued"], r["status"], r.get("reason"))] += 1
+        require(seen == set(wanted), "missing slot")
+        return dict(counts), [{"route": role, "issued": issued, "status": status, "reason": reason, "count": n}
+                              for (role, issued, status, reason), n in sorted(outcomes.items())]
+
+    calibration, _ = reconcile(manifest["calibration_slots"], manifest["calibration_cells"], cal_rows, False)
+    routes, outcomes = reconcile(final_manifest["slots"], final_manifest["cells"], final_rows, True)
+    require(set(routes) == set(FINAL_ROLES), "missing final route")
+    total = {k: sum(c[k] for c in routes.values()) for k in ("planned", "issued", "success", "not_issued")}
+    counts = manifest["counts"]
+    attempts = retention["attempt_counts"]
+    for prefix, actual in (("calibration", calibration["upmem"]), ("final", total)):
+        for key in ("planned", "issued", "success"):
+            require(attempts[f"{prefix}_{key}_slots"] == actual[key], "retention slot count mismatch")
+    require(attempts["final_not_issued_unsupported"] == total["not_issued"], "retention unsupported mismatch")
+    require(attempts["r_path_searches"] == len(paths) == counts["final_searches"], "search count mismatch")
+    require(attempts["r_path_proposals"] == counts["final_search_proposals"], "proposal count mismatch")
+    configurations = len({q["configuration_id"] for q in manifest["qualification"]})
+    require(configurations == counts["upmem_execution_configurations"], "qualification configuration mismatch")
+    for observed, planned in (("qualification_upmem_phy", "physical_qualification_attempts"),
+                              ("qualification_upmem_sim", "simulator_qualification_attempts"),
+                              ("qualification_quest", "quest_qualification_calls"),
+                              ("qualification_tiny_r_searches", "small_R_qualification_searches")):
+        require(attempts[observed] == counts[planned], "qualification count mismatch")
+    physical_final = {k: sum(routes[role][k] for role in ("upmem_f32", "upmem_int8")) for k in total}
+    physical_issued = attempts["qualification_upmem_phy"] + calibration["upmem"]["issued"] + physical_final["issued"]
+    ceiling = counts["physical_attempt_ceiling_including_qualification"]
+    require(physical_issued <= ceiling, "physical issue ceiling exceeded")
+    return {
+        "schema": "unified_v4_reporting_accounting_v1", "published_result_commit": PUBLISHED_RESULT,
+        "run_id": final_manifest["run_id"], "calibration": dict(calibration["upmem"]),
+        "calibration_cells": len(manifest["calibration_cells"]), "final_cells": len(final_manifest["cells"]),
+        "final": total, "routes": {r: dict(routes[r]) for r in FINAL_ROLES}, "route_outcomes": outcomes,
+        "paths": {"searches": len(paths), "proposals": attempts["r_path_proposals"],
+                  "selected": sum(p["status"] == "selected" for p in paths.values()),
+                  "no_selected": sum(p["status"] == "no_selected_R_path" for p in paths.values()),
+                  "frontiers": [{k: p[k] for k in ("case_id", "status", "reason", "admitted_candidate_count")}
+                                for p in sorted(paths.values(), key=lambda p: p["case_id"]) if p["status"] != "selected"]},
+        "qualification": {"configurations": configurations, "physical": attempts["qualification_upmem_phy"],
+                          "simulator": attempts["qualification_upmem_sim"], "quest": attempts["qualification_quest"],
+                          "tiny_r_searches": attempts["qualification_tiny_r_searches"]},
+        "physical": {"final": physical_final, "issued": physical_issued, "ceiling": ceiling},
+        "deduplicated_slots": counts["duplicate_slots_avoided_within_calibration"],
+        "archive_files_count": retention["archive_files_count"],
+        "archive_verification_source": "frozen retention.json; equality must be checked separately",
+    }
+
+
+def cold_cost_row(case, path, measured_rows):
+    plan_s = path["planning_once_s"]
+    pc.positive(plan_s, "missing R-path preparation/search time")
+    out = {"case_id": case["case_id"], "family": case["family"], "n": case["n"],
+           "path_status": path["status"], "path_reason": path["reason"], "planning_once_s": plan_s,
+           "median_cached_s": None, "cold_estimate": None,
+           "amortized_k1": None, "amortized_k10": None, "amortized_k100": None}
+    if path["status"] != "selected":
+        require(path["status"] == "no_selected_R_path" and not measured_rows, "unexpected unavailable-path measurements")
+        return out
+    require(measured_rows, "selected path has no cached execution measurements")
+    values = [r.get("job_to_state_cached_path_s") for r in measured_rows]
+    for v in values:
+        pc.positive(v, "missing/nonpositive cached job-to-state timing")
+    cached = statistics.median(values)
+    out.update(median_cached_s=cached, cold_estimate=plan_s + cached,
+               amortized_k1=cached + plan_s, amortized_k10=cached + plan_s / 10,
+               amortized_k100=cached + plan_s / 100)
+    return out
+
+
+def join_receipts(row, issued, receipt):
+    """A native receipt may enrich a ledger row but may not silently override it."""
+    for source in (issued, receipt):
+        require(source.get("slot_id") == row["slot_id"], "disk receipt slot mismatch")
+    for left, right in ((row, issued), (row, receipt), (issued, receipt)):
+        for key in left.keys() & right.keys():
+            require(type(left[key]) is type(right[key]) and left[key] == right[key],
+                    f"conflicting disk receipt field: {key} ({row['slot_id']})")
+    return {**issued, **row, **receipt}
+
+
+def synthesize_readout(campaign_dir: Path, output_dir: Path, retention_path: Path | None = None) -> None:
     campaign_dir = campaign_dir.resolve()
     output_dir = output_dir.resolve()
     require(not output_dir.exists(), f"output directory already exists: {output_dir}; do not overwrite")
@@ -130,6 +283,21 @@ def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
 
     cal_rows = read_json(cal_rows_file)
     final_rows = read_json(final_rows_file)
+    path_records = read_json(campaign_dir / "path_records.json")
+    spec = read_json(HERE / "protocol.json")
+    pc.validate_calibration_rows(spec, manifest, cal_rows)
+    require(pc.materialize_final(spec, manifest, selection, path_records) == final_manifest,
+            "final manifest differs from frozen inputs")
+    if retention_path is None:
+        retention_path = HERE.parents[1] / "thesis/implementation/thesis_results/unified_final_v4/retention.json"
+    retention = read_json(retention_path)
+    require(retention["run_id"] == final_manifest["run_id"], "retention run mismatch")
+    require(retention["base_commit"] == spec["base_commit"], "retention base commit mismatch")
+    for filename in ("calibration_rows", "final_rows", "path_records"):
+        require(hashlib.sha256((campaign_dir / f"{filename}.json").read_bytes()).hexdigest() == retention[f"{filename}_sha256"],
+                f"retention digest mismatch: {filename}")
+    accounting = derive_accounting(manifest, final_manifest, cal_rows, final_rows, path_records, retention)
+    pc.write_new_json(output_dir / "accounting.json", accounting)
 
     # 1. Verify receipt files on disk
     cal_receipts_dir = campaign_dir / "receipts/calibration"
@@ -146,7 +314,7 @@ def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
         issued = read_json(issued_path)
         require(issued["slot_id"] == sid, f"issued slot_id mismatch in {issued_path}")
         require(r["slot_id"] == sid, f"row slot_id mismatch in {sid}")
-        joined = {**issued, **r, **rec}
+        joined = join_receipts(r, issued, rec)
         joined_cal_rows.append(joined)
 
     joined_final_rows = []
@@ -160,7 +328,7 @@ def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
             rec = read_json(rec_path)
             issued = read_json(issued_path)
             require(issued["slot_id"] == sid, f"final issued slot_id mismatch: {issued_path}")
-            joined = {**issued, **r, **rec}
+            joined = join_receipts(r, issued, rec)
         else:
             joined = dict(r)
         joined_final_rows.append(joined)
@@ -436,77 +604,62 @@ def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
 
     write_csv(output_dir / "aggregates.csv", bootstrap_rows)
 
-    # 6. Cold Cost Accounting Table
-    path_records = read_json(campaign_dir / "path_records.json")
+    # 6. Search costs and derived simulation-call estimates.
     path_records_by_case = {p["case_id"]: p for p in path_records}
-
-    cold_cost_rows = []
-    for c in manifest["cases"]:
-        cid = c["case_id"]
-        if cid not in path_records_by_case:
-            continue
-        prec = path_records_by_case[cid]
-        plan_s = float(prec.get("planning_once_s", 0.0))
-
-        # Cached time from final UPMEM f32
-        u_cell_opt = next((cell["cell_id"] for cell in final_manifest["cells"] if cell["case_id"] == cid and cell["role"] == "upmem_f32"), None)
-        if u_cell_opt and u_cell_opt in final_slots_by_cell:
-            cached_vals = [r.get("job_to_state_cached_path_s", r.get("prepared_call_s")) for r in final_slots_by_cell[u_cell_opt]]
-            cached_vals = [x for x in cached_vals if isinstance(x, (int, float)) and math.isfinite(x)]
-            cached_s = statistics.median(cached_vals) if cached_vals else 0.0
-        else:
-            cached_s = 0.0
-
-        cold_est = plan_s + cached_s
-        cold_cost_rows.append({
-            "case_id": cid, "family": c["family"], "n": c["n"],
-            "planning_once_s": plan_s,
-            "median_cached_s": cached_s,
-            "cold_estimate": cold_est,
-            "amortized_k1": cached_s + plan_s / 1.0,
-            "amortized_k10": cached_s + plan_s / 10.0,
-            "amortized_k100": cached_s + plan_s / 100.0,
-        })
+    cells_by_case = {c["case_id"]: c["cell_id"] for c in final_manifest["cells"] if c["role"] == "upmem_f32"}
+    cold_cost_rows = [cold_cost_row(c, path_records_by_case[c["case_id"]],
+                                  final_slots_by_cell.get(cells_by_case[c["case_id"]], []))
+                      for c in manifest["cases"] if c["case_id"] in path_records_by_case]
     write_csv(output_dir / "cold_cost.csv", cold_cost_rows)
 
-    # 7. Summary Report (report.md)
-    cal_planned = len(manifest["calibration_slots"])
-    cal_issued = sum(r["issued"] for r in joined_cal_rows)
-    cal_success = sum(r["status"] == "success" for r in joined_cal_rows)
-    final_planned = len(final_manifest["slots"])
-    final_issued = sum(r.get("issued", False) for r in joined_final_rows)
-    final_success = sum(r.get("status") == "success" for r in joined_final_rows)
-
-    report_content = f"""# Unified Evaluation v4 Final Readout Report
-
-Base commit: `{manifest.get('base_commit', '683194cf4895420898297095a0d92e83c282b355')}`
-Implementation commit: `{FROZEN_IMPLEMENTATION}`
-Evaluator commit: `{final_manifest['evaluation_commit']}`
-Run ID: `{final_manifest['run_id']}`
-
-Protocol SHA-256: `{manifest['protocol_sha256']}`
-Manifest SHA-256: `{manifest['content_sha256']}`
-Selection SHA-256: `{selection['content_sha256']}`
-Final Manifest SHA-256: `{final_manifest['content_sha256']}`
-
-## Slot Accounting
-- Calibration planned slots: {cal_planned}
-- Calibration issued slots: {cal_issued}
-- Calibration successful slots: {cal_success}
-- Final planned slots: {final_planned}
-- Final issued slots: {final_issued}
-- Final successful slots: {final_success}
-- Duplicates avoided in calibration schedule: 714
-
-## Selection Winners
-Total selections: {len(selection['selections'])}
-Rule: {selection['rule']}
-
-## Retention & Verification
-All rows joined and verified against raw disk receipts.
-Independent dual-archive equality satisfied.
-"""
-    (output_dir / "report.md").write_text(report_content, encoding="utf-8")
+    # 7. The report and publication table consume the same reconciled counts.
+    a = accounting
+    report = [
+        "# Unified Evaluation v4 Corrected Readout Receipt", "",
+        f"Original published result commit: `{a['published_result_commit']}`",
+        f"Base commit: `{retention['base_commit']}`",
+        f"Implementation commit: `{retention['implementation_commit']}`",
+        f"Evaluator commit: `{final_manifest['evaluation_commit']}`",
+        f"Run ID: `{final_manifest['run_id']}`", "",
+        f"Protocol SHA-256: `{manifest['protocol_sha256']}`",
+        f"Manifest SHA-256: `{manifest['content_sha256']}`",
+        f"Selection SHA-256: `{selection['content_sha256']}`",
+        f"Final Manifest SHA-256: `{final_manifest['content_sha256']}`", "",
+        "## Slot accounting", "",
+        f"Calibration: {a['calibration']['planned']} planned, {a['calibration']['issued']} issued, "
+        f"{a['calibration']['success']} successful; {a['deduplicated_slots']} duplicate slots avoided.", "",
+        "| Final route | Planned | Issued | Successful | Not issued |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+    for role, c in [*a['routes'].items(), ('Total', a['final'])]:
+        report.append(f"| {role} | {c['planned']} | {c['issued']} | {c['success']} | {c['not_issued']} |")
+    p = a['paths']
+    report += ["", "## R-path admission outcomes", "",
+               f"{p['searches']} searches, {p['proposals']} proposals, {p['selected']} selected R paths, "
+               f"{p['no_selected']} no-selected-R-path outcomes.", "",
+               "The following cases have `no_selected_R_path` / `no_admitted_candidate`: "
+               + ", ".join(f"`{r['case_id']}`" for r in p['frontiers']) + ".", "",
+               "The two UPMEM routes and NumPy same-DAG require the shared R path. "
+               "Their unsupported slots were never issued. QuEST remains executable. "
+               "These are planning/admission frontiers, not physical execution failures.", "",
+               "## Physical campaign and retention", "",
+               f"{a['qualification']['physical']} qualification + {a['calibration']['issued']} calibration + "
+               f"{a['physical']['final']['issued']} final = **{a['physical']['issued']} physical issues**, "
+               f"within the {a['physical']['ceiling']} ceiling. "
+               f"{a['physical']['final']['not_issued']} allocated physical final slots were not issued.", "",
+               f"Qualification used {a['qualification']['configurations']} configurations, each replayed twice. "
+               f"The frozen retention receipt records two verified copies of {a['archive_files_count']} files. "
+               "This readout joins raw disk receipts; it does not itself assert a new dual-archive byte comparison.", "",
+               "## Selection and timing definitions", "",
+               f"Topology winners: {len(selection['selections'])}. Rule: {selection['rule']}.", "",
+               "R-path preparation/search is a one-time offline cost. Cached-path job-to-state runs from "
+               "the preloaded circuit specification to an owned contiguous complete statevector with the path available. "
+               "Estimated per-call cost is search/k + cached job-to-state for k=1,10,100. "
+               "These are derived estimates, not separately measured cold executions. "
+               "No-path cases retain search time and have no executable cached-path cost.", "",
+               "One-rank DPU scaling saturated after D16, with lower aggregate speedup at D32 and D64. "
+               "This observation alone does not attribute dominance to a communication mechanism.", ""]
+    (output_dir / "report.md").write_text("\n".join(report), encoding="utf-8")
     print(f"[readout] PASSED. Generated canonical tables and report at {output_dir}.")
 
 
@@ -514,8 +667,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Unified evaluation v4 readout")
     parser.add_argument("--campaign", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--retention", type=Path, help="Frozen retention receipt (defaults to published v4 receipt)")
     args = parser.parse_args()
-    synthesize_readout(args.campaign, args.output)
+    synthesize_readout(args.campaign, args.output, args.retention)
 
 
 if __name__ == "__main__":
