@@ -30,6 +30,7 @@ import socket
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import traceback
 
@@ -379,6 +380,64 @@ def quest_bridge_once(job, libfile: Path | str, requested_threads: int):
         "bridge_sha256": digest_file(libfile),
     }
     return output, metrics
+
+
+def apply_thread_environment(spec: Mapping[str, object], threads: int = 1) -> None:
+    for k, v in spec.get("thread_environment", {}).items():
+        if k == "OMP_NUM_THREADS":
+            os.environ[k] = str(threads)
+        else:
+            os.environ[k] = str(v)
+
+
+def quest_in_subprocess(
+    source: Path | str,
+    qasm_path: Path | str,
+    n_qubits: int,
+    libfile: Path | str,
+    threads: int,
+    output_npy: Path | str | None = None,
+) -> tuple[object, dict]:
+    import numpy as np
+
+    source = Path(source).resolve()
+    qasm_path = Path(qasm_path).resolve()
+    libfile = Path(libfile).resolve()
+    with tempfile.TemporaryDirectory() as td:
+        tdp = Path(td)
+        out_npy = Path(output_npy).resolve() if output_npy else (tdp / "output.npy")
+        out_npy.parent.mkdir(parents=True, exist_ok=True)
+        metrics_json = tdp / "metrics.json"
+
+        script = f"""
+import os, sys
+from pathlib import Path
+
+os.environ["OMP_NUM_THREADS"] = "{threads}"
+os.environ["OMP_DYNAMIC"] = "FALSE"
+os.environ["OMP_PROC_BIND"] = "TRUE"
+os.environ["OMP_PLACES"] = "cores"
+avail = sorted(os.sched_getaffinity(0))
+cores = set(avail[:min(len(avail), {threads})])
+os.sched_setaffinity(0, cores)
+
+sys.path.insert(0, "{HERE}")
+import runner
+source = Path("{source}")
+libfile = Path("{libfile}")
+qasm_path = Path("{qasm_path}")
+job = runner.load_circuit_job(source, qasm_path, {n_qubits})
+output, metrics = runner.quest_bridge_once(job, libfile, {threads})
+
+import numpy as np
+np.save("{out_npy}", output, allow_pickle=False)
+runner.write_new_json("{metrics_json}", metrics)
+"""
+        res = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+        require(res.returncode == 0, f"QuEST subprocess failed (exit {res.returncode}):\n{res.stderr}\n{res.stdout}")
+        metrics = read_json(metrics_json)
+        output = np.load(out_npy, allow_pickle=False)
+        return output, metrics
 
 
 # ---------------------------------------------------------------------------
@@ -978,15 +1037,11 @@ def worker_main(argv: list[str]) -> None:
                 tensor_count=len(net.tensors),
             )
         elif args.mode == "reference":
-            setup_implementation_imports(source)
             qasm_path = work / "cases" / f"{case_info['case_id']}.qasm"
-            job = load_circuit_job(source, qasm_path, int(case_info["n"]))
-            output, details = quest_bridge_once(job, Path(args.quest64), 1)
             ref_dir = work / "references"
             ref_dir.mkdir(parents=True, exist_ok=True)
             ref_path = ref_dir / f"{case_info['case_id']}.npy"
-            import numpy as np
-            np.save(ref_path, output, allow_pickle=False)
+            output, details = quest_in_subprocess(source, qasm_path, int(case_info["n"]), Path(args.quest64), 1, output_npy=ref_path)
             result.update(
                 status="success",
                 reference_path=str(ref_path),
@@ -1001,8 +1056,7 @@ def worker_main(argv: list[str]) -> None:
             backend = arm_info.get("backend", "upmem")
             if backend == "quest32":
                 qasm_path = work / "cases" / f"{case_info['case_id']}.qasm"
-                job = load_circuit_job(source, qasm_path, int(case_info["n"]))
-                output, metrics = quest_bridge_once(job, Path(args.quest32), int(arm_info.get("threads", 1)))
+                output, metrics = quest_in_subprocess(source, qasm_path, int(case_info["n"]), Path(args.quest32), int(arm_info.get("threads", 1)))
             else:
                 output, metrics = execute_tn_slot(
                     source=source,
@@ -1084,8 +1138,7 @@ def qualify_cmd(
     spec = read_json(spec_path or (HERE / "protocol.json"))
     pc.validate_spec(spec)
 
-    for k, v in spec.get("thread_environment", {}).items():
-        os.environ[k] = str(v)
+    apply_thread_environment(spec, 1)
 
     qual_dir = work / "qualification"
     qual_dir.mkdir(parents=True, exist_ok=True)
@@ -1147,19 +1200,15 @@ def qualify_cmd(
 
     stress4_ref_path = ref_dir / "qual_stress_n04_l2.npy"
     if not stress4_ref_path.exists():
-        job = load_circuit_job(source, cases_dir / "qual_stress_n04_l2.qasm", 4)
-        s4_out, _ = quest_bridge_once(job, p2_lib, 1)
-        import numpy as np
-        np.save(stress4_ref_path, s4_out, allow_pickle=False)
+        quest_in_subprocess(source, cases_dir / "qual_stress_n04_l2.qasm", 4, p2_lib, 1, output_npy=stress4_ref_path)
 
     quest_results = []
     for q in qual_fixtures:
         cid = q["case_id"]
-        job = load_circuit_job(source, cases_dir / f"{cid}.qasm", int(q["n"]))
+        qasm_path = cases_dir / f"{cid}.qasm"
         for prec, libfile in ((1, p1_lib), (2, p2_lib)):
             for threads in (1, 8):
-                os.sched_setaffinity(0, set(range(threads)))
-                output, metrics = quest_bridge_once(job, libfile, threads)
+                output, metrics = quest_in_subprocess(source, qasm_path, int(q["n"]), libfile, threads)
                 ref_p = ref_dir / f"{cid}.npy"
                 if ref_p.exists():
                     import numpy as np
@@ -1385,8 +1434,7 @@ def run_block_cmd(
     spec = read_json(spec_path or (HERE / "protocol.json"))
     pc.validate_spec(spec)
 
-    for k, v in spec.get("thread_environment", {}).items():
-        os.environ[k] = str(v)
+    apply_thread_environment(spec, 1)
     if not simulator:
         os.environ["UPMEM_ALLOW_PHYSICAL_HARDWARE"] = "1"
 
@@ -1532,10 +1580,12 @@ def run_block_cmd(
             write_new_json(issued_file, issued_record)
 
             threads = int(cell["arm"].get("threads", 1))
+            apply_thread_environment(spec, threads)
+            avail = sorted(os.sched_getaffinity(0))
             if threads > 1:
-                os.sched_setaffinity(0, set(range(threads)))
+                os.sched_setaffinity(0, set(avail[:min(len(avail), threads)]))
             else:
-                os.sched_setaffinity(0, {0})
+                os.sched_setaffinity(0, {avail[0]})
 
             result = {
                 "schema": "unified_v4_worker_result_v1",
@@ -1553,9 +1603,8 @@ def run_block_cmd(
             try:
                 if slot["backend"] == "quest32":
                     qasm_path = work / "cases" / f"{case_obj['case_id']}.qasm"
-                    job = load_circuit_job(source, qasm_path, int(case_obj["n"]))
                     libfile = build / "quest-p1/lib/libquest_bridge.so"
-                    output, metrics = quest_bridge_once(job, libfile, threads)
+                    output, metrics = quest_in_subprocess(source, qasm_path, int(case_obj["n"]), libfile, threads)
                 else:
                     cached_path = None
                     if phase == "final" and cell.get("selected_path_id"):
@@ -1826,25 +1875,19 @@ work = Path('{rem_work}')
 p2_lib = build / 'quest-p2/lib/libquest_bridge.so'
 (work / 'references').mkdir(parents=True, exist_ok=True)
 manifest = runner.read_json(work / 'static/manifest.json')
-import numpy as np
 for c in manifest['cases']:
     if c['family'] == 'stress':
         ref_p = work / f"references/{{c['case_id']}}.npy"
         if not ref_p.exists():
-            job = runner.load_circuit_job(source, work / f"cases/{{c['case_id']}}.qasm", int(c['n']))
-            out, _ = runner.quest_bridge_once(job, p2_lib, 1)
-            np.save(ref_p, out, allow_pickle=False)
+            runner.quest_in_subprocess(source, work / f"cases/{{c['case_id']}}.qasm", int(c['n']), p2_lib, 1, output_npy=ref_p)
             print('Generated reference for', c['case_id'])
 """
             run_ssh([mach["remote_python"], "-c", gen_script], check=True)
             rsync_from_remote("references/", loc_work / "references/")
         else:
             p2_lib = Path(mach["remote_build_root"]) / "quest-p2/lib/libquest_bridge.so"
-            import numpy as np
             for c in stress_missing:
-                job = load_circuit_job(HERE.parents[1], loc_cases_dir / f"{c['case_id']}.qasm", int(c["n"]))
-                out, _ = quest_bridge_once(job, p2_lib, 1)
-                np.save(loc_ref_dir / f"{c['case_id']}.npy", out, allow_pickle=False)
+                quest_in_subprocess(HERE.parents[1], loc_cases_dir / f"{c['case_id']}.qasm", int(c["n"]), p2_lib, 1, output_npy=loc_ref_dir / f"{c['case_id']}.npy")
         for c in stress_cases:
             shutil.copy2(loc_ref_dir / f"{c['case_id']}.npy", archive_A / f"{c['case_id']}.npy")
             shutil.copy2(loc_ref_dir / f"{c['case_id']}.npy", archive_B / f"{c['case_id']}.npy")
