@@ -17,19 +17,23 @@ The long operator instructions remain outside this repository.
 
 ## Reporting-only regeneration
 
-The completed v4 hardware campaign is closed. Rebuild readouts directly from each
-frozen archive into a new directory; this command performs no workload execution:
+The completed v4 hardware campaign is closed. The accepted readouts are frozen.
+Current presentation uses `python thesis/reporting/build_all.py`; verification uses
+`python tools/verify_release.py`. Neither command rebuilds canonical readouts.
+
+For historical inspection only, the readout utility can write a separate scratch
+directory from a frozen archive. This is not required for release verification and
+must never overwrite accepted evidence:
 
 ```sh
 python evaluation/unified_v4/readout.py --campaign /path/to/frozen/archive/run \
   --retention thesis/implementation/thesis_results/unified_final_v4/retention.json \
   --output /new/readout-directory
-python thesis/synthesis/unified_v4/build.py --readout /new/readout-directory \
-  --output /new/publication-directory
 ```
 
-Compare the separately regenerated archive-A and archive-B readouts before
-publishing. The readout validates sealed inputs, retained byte digests, slot
+The retired synthesis generator is available at the
+[historical publication entrypoint](../../thesis/synthesis/unified_v4/README.md).
+The readout validates sealed inputs, retained byte digests, slot
 identities and overlapping native/issued receipt fields. `accounting.json`
 distinguishes planned slots, actual issues, route outcomes and R-path admission
 frontiers. A readout build alone does not re-verify equality of the archive bytes.

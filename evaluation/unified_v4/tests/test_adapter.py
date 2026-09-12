@@ -210,6 +210,29 @@ class AdapterTests(unittest.TestCase):
         bad_finite = dict(good_err, finite=False)
         self.assertFalse(runner.check_accuracy(bad_finite, val_spec))
 
+    def test_accuracy_rejects_invalid_scalar_metrics(self):
+        good = dict(finite=True, elementwise_allclose=True, relative_l2=0.0,
+                    norm_drift=0.0, max_abs=0.0, reference_peak=1.0)
+        for key in ("relative_l2", "norm_drift", "max_abs", "reference_peak"):
+            for value in (float("nan"), float("inf"), -float("inf"), -1.0, None, True, "0", []):
+                with self.subTest(key=key, value=value):
+                    self.assertFalse(runner.check_accuracy(dict(good, **{key: value}), self.spec["validation"]))
+            with self.subTest(missing=key):
+                missing = dict(good)
+                missing.pop(key)
+                self.assertFalse(runner.check_accuracy(missing, self.spec["validation"]))
+
+    def test_accuracy_preserves_zero_and_tolerance_boundaries(self):
+        spec = self.spec["validation"]
+        good = dict(finite=True, elementwise_allclose=True, relative_l2=0.0,
+                    norm_drift=0.0, max_abs=0.0, reference_peak=0.0)
+        self.assertTrue(runner.check_accuracy(good, spec))
+        for key, bound in (("relative_l2", spec["relative_l2_max"]),
+                           ("norm_drift", spec["norm_drift_max"]), ("max_abs", spec["atol"])):
+            with self.subTest(key=key):
+                self.assertTrue(runner.check_accuracy(dict(good, **{key: bound}), spec))
+                self.assertFalse(runner.check_accuracy(dict(good, **{key: bound * 1.01}), spec))
+
     # 7. all fresh calibration controls are jointly blocked; aliases do not increase sample counts
     def test_calibration_aliases_jointly_blocked(self):
         vmap = {}

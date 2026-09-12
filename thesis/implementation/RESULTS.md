@@ -5,6 +5,38 @@ Mechanism results below are transcribed from their recorded studies; P6 values
 come from its committed tables. Different sources, workloads and timing scopes
 must not be pooled into a cumulative speedup.
 
+## Authoritative final evaluation: unified-v4
+
+The [accepted unified package](thesis_results/unified_final_v4/README.md) is the final
+six-family dataset. It supersedes earlier campaigns as the headline evaluation;
+those remain separate evidence for mechanisms and design decisions.
+
+- Calibration completed 2,674 physical executions. Qualification issued 108 and
+  final UPMEM execution issued 552, totaling **3,334 ≤ 3,406**.
+- Of 52 final R searches, 46 selected a path and six maximum-width primary cases
+  admitted no candidate. These are planning frontiers, not failed executions.
+- Final accounting is 1,560 planned / 1,452 issued and successful / 108 unissued.
+  UPMEM float32, int8 and NumPy each issued 276; QuEST P8 and P1 each issued 312.
+- Cumulative A0–A4 execution-call speedup has a six-family geometric mean of
+  approximately 6.25×. A1 is D1/T8; A3 adds complex launch/four-product fusion;
+  A4 adds static-DAG scheduling. Fusion is not quantum-gate fusion.
+- One-rank DPU scaling saturated after D16, with lower aggregate speedup at
+  D32/D64. The timings alone do not establish a dominant causal component.
+- Int8 is approximate. Resource selection used no post-hoc quality tuning.
+  Numerical quality is disclosed separately from physical execution success.
+
+See the [current reporting captions and tables](../reporting/README.md) for exact
+metrics, uncertainty definitions and CPU comparisons. Final comparisons use
+cached-path job-to-state time; calibration plots use execution-call wall time.
+One-time R preparation/search cost is separate. Raw archives retain the original
+readouts; corrected committed canonical readouts are authoritative for reporting.
+The [release audit](../../release/AUDIT.md) explains this distinction and verifies
+all retained packages. No data were regenerated during release preparation.
+
+## Historical mechanism and supporting studies
+
+The following results retain their original scope and source identities.
+
 ## Foundation and execution studies
 
 The sequential full-circuit reference used greedy, one DPU, one tasklet,
@@ -43,7 +75,7 @@ approximately **8.3% relative L2 error**. GHZ18 and HS18 matched their tested fl
 results. The best observed HS18/Stress18 route changed from four DPUs to two under
 int8. Numerical suitability and useful parallelism are workload-dependent. [Record][int8]
 
-## Final path study (P6)
+## Supporting path-selection study (historical tag P6)
 
 G is greedy; F selects by FLOPs; R reranks F's candidate trace with the UPMEM score;
 U generates a separate adaptive trace using that score. Each search has 128 proposals.

@@ -1,0 +1,61 @@
+{
+  "base_commit": "a2a5b534ccc562f0448e76912e144c0a3e6f7e96",
+  "source_state": "release preparation working tree, identified by tested-source.sha256; not yet committed",
+  "physical_opt_in": "unset",
+  "suites": {
+    "implementation": {
+      "total": 2503,
+      "passed": 2503,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "final_v1": {
+      "total": 40,
+      "passed": 40,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unified_v4": {
+      "total": 89,
+      "passed": 89,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "verifier": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "path-readout": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "native-cpu": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reporting": {
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "passed_total": 2660,
+  "sdk": "2025.1.0 simulator; not a physical run",
+  "rendered_outputs": 27,
+  "review_pages": 22,
+  "page_text_bounds": "PASS"
+}

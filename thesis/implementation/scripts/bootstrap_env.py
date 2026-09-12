@@ -50,7 +50,7 @@ def bootstrap(*, dry_run: bool = False, root: Path = ROOT, venv: Path = VENV) ->
             command += ["--python", requested]
         commands.append(command)
     install_python = str(python)
-    commands.append([uv, "pip", "install", "--python", install_python, "--constraint", str(root / "ci" / "constraints.txt"), "-e", ".[dev]"])
+    commands.append([uv, "pip", "install", "--python", install_python, "--constraint", str(root / "ci" / "constraints.txt"), "-e", ".[dev,path-search]"])
     repo_root = repository_root(root)
     if (repo_root / ".gitmodules").exists():
         commands.append(["git", "submodule", "update", "--init", "--recursive"])

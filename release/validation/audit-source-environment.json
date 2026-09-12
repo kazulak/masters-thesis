@@ -1,0 +1,48 @@
+{
+  "python_executable": "/home/tom/repos/masters-thesis/thesis/.venv/bin/python",
+  "python_version": "3.10.12",
+  "quantum_bench_import": "/home/tom/repos/masters-thesis/thesis/implementation/src/quantum_bench/__init__.py",
+  "cli_import": "/home/tom/repos/masters-thesis/thesis/implementation/src/quantum_bench/cli.py",
+  "versions": {
+    "numpy": "2.2.6",
+    "pytest": "9.0.3",
+    "ruff": "0.15.21",
+    "opt_einsum": "3.4.0",
+    "cotengra": "0.7.5",
+    "quimb": "1.11.2",
+    "optuna": "4.5.0",
+    "setuptools": "59.6.0"
+  },
+  "sdk_version": "2025.1.0",
+  "source_identities": [
+    {
+      "root": "/home/tom/repos/masters-thesis",
+      "head": "683194cf4895420898297095a0d92e83c282b355",
+      "tracked_files": 292,
+      "file_manifest_sha256": "262fdca5d98d206da122282f7ab50886b345ca8ace54a1e506c24093ad1b165b",
+      "status": " M README.md\n?? masters-thesis-unified-evaluation-v4-plan.zip\n?? thesis/synthesis/publication/\n"
+    },
+    {
+      "root": "/home/tom/repos/masters-thesis-final-reporting",
+      "head": "a2a5b534ccc562f0448e76912e144c0a3e6f7e96",
+      "tracked_files": 292,
+      "file_manifest_sha256": "262fdca5d98d206da122282f7ab50886b345ca8ace54a1e506c24093ad1b165b",
+      "status": ""
+    }
+  ],
+  "byte_identical": true,
+  "submodules": " cecc39e29e6576ced73b2041db6e357769a6531a thesis/implementation/external/PID-Comm (v1.0-4-gcecc39e)\n 9d7618d7263e3bfba433b88cf1eac0647f08fa0a thesis/implementation/external/QuEST (v4.2.0)\n 1d639c53532555f01e9f71d872e7712b166d6cba thesis/implementation/external/SimplePIM (heads/main)\n",
+  "full_suite": {
+    "failure": 0,
+    "error": 0,
+    "skipped": 0,
+    "total": 2489,
+    "passed": 2489
+  },
+  "full_suite_log": "/tmp/thesis-release-audit-complete-pytest.log",
+  "full_suite_junit": "/tmp/thesis-release-audit-complete-pytest.xml",
+  "earlier_prerequisite_limited_log": "/tmp/thesis-release-audit-full-pytest.log",
+  "earlier_prerequisite_limited_junit": "/tmp/thesis-release-audit-full-pytest.xml",
+  "physical_opt_in": "explicitly unset for pytest process",
+  "notes": "No tracked files edited; original README/zip/publication preexist this audit. SDK simulator unit tests are not physical qualification."
+}

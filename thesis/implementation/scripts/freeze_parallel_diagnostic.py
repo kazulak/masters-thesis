@@ -178,12 +178,29 @@ def _verify_checksums(root: Path) -> None:
 
 
 def _safe_extract(archive: Path, destination: Path) -> Path:
+    if destination.is_symlink() or (destination.exists() and
+            (not destination.is_dir() or any(destination.iterdir()))):
+        raise ValueError("extraction destination must be a new or empty directory")
     with tarfile.open(archive, "r:gz") as stream:
         members = stream.getmembers()
+        names: set[str] = set()
+        files: set[str] = set()
+        roots: set[str] = set()
         for member in members:
             path = Path(member.name)
-            if path.is_absolute() or ".." in path.parts:
+            if (not member.name or member.name in names or path.is_absolute()
+                    or ".." in path.parts or "\\" in member.name
+                    or path.as_posix() != member.name or member.name == "."
+                    or not (member.isfile() or member.isdir())):
                 raise ValueError(f"unsafe archive member: {member.name}")
+            names.add(member.name)
+            roots.add(path.parts[0])
+            if member.isfile():
+                files.add(member.name)
+        if len(roots) != 1 or roots & files:
+            raise ValueError("bundle must contain exactly one root directory")
+        if any(parent.as_posix() in files for name in names for parent in Path(name).parents):
+            raise ValueError("archive member has a file as its parent")
         stream.extractall(destination)
     roots = [path for path in destination.iterdir() if path.is_dir()]
     if len(roots) != 1:

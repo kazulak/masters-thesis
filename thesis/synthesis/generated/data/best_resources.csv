@@ -1,7 +1,0 @@
-suite,case_id,fixed_tasklets,best_observed_resource,endpoint,best_prepared_s,best_ratio_vs_one,endpoint_ratio_vs_one,endpoint_efficiency,claim_limit,source_rows
-T,hs_n18,,12,24,2.038048024987802,2.007569136178048,1.9049196417451697,0.07937165173938207,Descriptive minimum median in measured grid; not an independent optimum confirmation.,357;358;359;360;361
-T,stress_n16_l2,,18,24,2.250859680993017,3.4640840536590383,3.3851296141644838,0.14104706725685348,Descriptive minimum median in measured grid; not an independent optimum confirmation.,537;538;539;540;541
-D,hs_n18,8,4,64,1.0710321300430223,1.372090119245401,1.1295782327559136,0.01764965988681115,Descriptive minimum median in measured grid; not an independent optimum confirmation.,147;148;149;150;151
-D,hs_n18,24,4,64,1.054233811039012,1.3372526248222671,1.0971628576926713,0.01714316965144799,Descriptive minimum median in measured grid; not an independent optimum confirmation.,153;154;155;156;157
-D,stress_n16_l2,8,16,64,1.0345888690208085,1.8024723876464608,1.6113604497110228,0.02517750702673473,Descriptive minimum median in measured grid; not an independent optimum confirmation.,255;256;257;258;259
-D,stress_n16_l2,24,16,64,0.9739306740229949,1.6808871798519949,1.4725239433473667,0.023008186614802605,Descriptive minimum median in measured grid; not an independent optimum confirmation.,261;262;263;264;265

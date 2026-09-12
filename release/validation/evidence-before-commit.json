@@ -1,0 +1,140 @@
+{
+  "source_commit": "a2a5b534ccc562f0448e76912e144c0a3e6f7e96",
+  "source_tree": "563985a3eefc9c0441019e9d70c99e2f7af61f6f",
+  "compact": "PASS",
+  "frozen_files": 920,
+  "package_checksum_manifests": 12,
+  "historical_gzip_representations": [
+    "thesis/implementation/thesis_results/final_evaluation_v1/original_p6_readout/SHA256SUMS",
+    "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/SHA256SUMS"
+  ],
+  "final": {
+    "planned": 1560,
+    "issued": 1452,
+    "success": 1452,
+    "not_issued": 108
+  },
+  "physical": {
+    "final": {
+      "planned": 624,
+      "issued": 552,
+      "success": 552,
+      "not_issued": 72
+    },
+    "issued": 3334,
+    "ceiling": 3406
+  },
+  "paths": {
+    "searches": 52,
+    "proposals": 6656,
+    "selected": 46,
+    "no_selected": 6,
+    "frontiers": [
+      {
+        "case_id": "bb84_n26",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      },
+      {
+        "case_id": "bv_n26",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      },
+      {
+        "case_id": "edc_n25",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      },
+      {
+        "case_id": "hs_n26",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      },
+      {
+        "case_id": "qrng_n26",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      },
+      {
+        "case_id": "xor_n26",
+        "status": "no_selected_R_path",
+        "reason": "no_admitted_candidate",
+        "admitted_candidate_count": 0
+      }
+    ]
+  },
+  "raw": "PASS",
+  "archives": [
+    {
+      "name": "unified-final-v4-raw.tar.gz",
+      "sha256": "3e9c625efc35556c143f1c0474303ee608c4e1183a01c309e625b280393d857c",
+      "files": 8288,
+      "payload_bytes": 1191884829
+    },
+    {
+      "name": "path-study-initial.tar.gz",
+      "sha256": "2ef9fdfbf44fc68d9e1b712855ffdf362822ad16caf8cd6a3b73934791a769c8",
+      "files": 23,
+      "payload_bytes": 45544632
+    },
+    {
+      "name": "path-study-feedback-1.tar.gz",
+      "sha256": "264ebe0a32cd2c8495025c4873454f638db56e52317409f9dc2d67790e5ec05d",
+      "files": 23,
+      "payload_bytes": 75240136
+    },
+    {
+      "name": "path-study-feedback-2.tar.gz",
+      "sha256": "a82fa9302d634ae4758bcb67e7cb0a22440d3366094a44156406e7e04878cea5",
+      "files": 23,
+      "payload_bytes": 106446625
+    },
+    {
+      "name": "path-study-evaluation.tar.gz",
+      "sha256": "b57f0a55c00becbf8a2b9349feea113e3c17244bdf20b6ef0edf1d88ed533e46",
+      "files": 23,
+      "payload_bytes": 158939659
+    },
+    {
+      "name": "historical-final-v1-00-prepared.tar.gz",
+      "sha256": "0843928fa532dc820ac926fd47a2c48882f3f734f0a4dddde5ec329bb37e1fc9",
+      "files": 1006,
+      "payload_bytes": 23558931
+    },
+    {
+      "name": "historical-final-v1-A.tar.gz",
+      "sha256": "ac6d438d194c3cdf88ec93eaa0e637576a7bcc2019fa56738d637f630db8839d",
+      "files": 360,
+      "payload_bytes": 54011970
+    },
+    {
+      "name": "historical-final-v1-D.tar.gz",
+      "sha256": "9cec386e1ec7a1a925445e5665fd0bd1bda3c24a974fd0c4335abb15431a89ce",
+      "files": 504,
+      "payload_bytes": 88616690
+    },
+    {
+      "name": "historical-final-v1-T.tar.gz",
+      "sha256": "0e85ad9c8d6e5d29feef0444d09a5edd97bb0603ad787b79598d0d450e9f6505",
+      "files": 864,
+      "payload_bytes": 148556193
+    },
+    {
+      "name": "historical-final-v1-W.tar.gz",
+      "sha256": "aa17352049668b4429b5136dc383655aea967606d0f99a52169ef99e4c36811a",
+      "files": 2592,
+      "payload_bytes": 218057220
+    },
+    {
+      "name": "historical-final-v1-99-complete.tar.gz",
+      "sha256": "26035e6d93511a9e9c7c1bb9605f5e24ffadc9708d378d8932013cc2a877552b",
+      "files": 5357,
+      "payload_bytes": 542097599
+    }
+  ]
+}
