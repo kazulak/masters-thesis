@@ -1753,6 +1753,11 @@ def run_all_cmd(machine_file: Path, evaluation_commit: str, run_id: str, receipt
 
     def rsync_from_remote(src_rel: str, dst: Path | str) -> None:
         if is_remote:
+            dst_p = Path(dst)
+            if src_rel.endswith("/"):
+                dst_p.mkdir(parents=True, exist_ok=True)
+            else:
+                dst_p.parent.mkdir(parents=True, exist_ok=True)
             key_path = Path.home() / ".ssh/id_ed25519_upmem_eth"
             ssh_opt = f"ssh -i {key_path}" if key_path.exists() else "ssh"
             target = f"{ssh_user}@{ssh_host}" if ssh_user else ssh_host
@@ -1771,6 +1776,9 @@ def run_all_cmd(machine_file: Path, evaluation_commit: str, run_id: str, receipt
     archive_A.mkdir(parents=True, exist_ok=True)
     archive_B.mkdir(parents=True, exist_ok=True)
 
+    for p in ("cases", "references", "receipts/calibration", "receipts/final", "paths", "static", "qualification"):
+        (loc_work / p).mkdir(parents=True, exist_ok=True)
+
     if is_remote:
         run_ssh(["mkdir", "-p",
                  f"{rem_work}/cases", f"{rem_work}/references",
@@ -1779,9 +1787,6 @@ def run_all_cmd(machine_file: Path, evaluation_commit: str, run_id: str, receipt
         lock_file = Path(mach["remote_lock"])
         run_ssh(["mkdir", "-p", str(lock_file.parent)])
         run_ssh(["touch", str(lock_file)])
-    else:
-        for p in ("cases", "references", "receipts/calibration", "receipts/final", "paths", "static", "qualification"):
-            (loc_work / p).mkdir(parents=True, exist_ok=True)
 
     # 1. Compile static manifest
     static_manifest_dir = loc_work / "static"
