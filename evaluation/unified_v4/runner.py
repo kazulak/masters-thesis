@@ -1776,14 +1776,14 @@ def run_all_cmd(machine_file: Path, evaluation_commit: str, run_id: str, receipt
     archive_A.mkdir(parents=True, exist_ok=True)
     archive_B.mkdir(parents=True, exist_ok=True)
 
-    for p in ("cases", "references", "receipts/calibration", "receipts/final", "paths", "static", "qualification"):
+    for p in ("cases", "references", "receipts/calibration", "receipts/final", "paths", "qualification"):
         (loc_work / p).mkdir(parents=True, exist_ok=True)
 
     if is_remote:
         run_ssh(["mkdir", "-p",
                  f"{rem_work}/cases", f"{rem_work}/references",
                  f"{rem_work}/receipts/calibration", f"{rem_work}/receipts/final",
-                 f"{rem_work}/paths", f"{rem_work}/static", f"{rem_work}/qualification"])
+                 f"{rem_work}/paths", f"{rem_work}/qualification"])
         lock_file = Path(mach["remote_lock"])
         run_ssh(["mkdir", "-p", str(lock_file.parent)])
         run_ssh(["touch", str(lock_file)])
