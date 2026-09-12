@@ -1,0 +1,313 @@
+{
+  "schema": "unified_final_evaluation_protocol_v4",
+  "protocol_id": "unified_final_v4",
+  "status": "prospective_protocol_no_measurements",
+  "repository": "kazulak/masters-thesis",
+  "base_commit": "683194cf4895420898297095a0d92e83c282b355",
+  "implementation_commit": "f6b570a98a610d41b5b16401a42ce12a94042d38",
+  "implementation_tree": "98597dfe4db38c49bd4e2cfa127880739e0d5a05",
+  "old_evidence_commit": "8ead323f1a8700d0457d6b509ce92f3d56e441e2",
+  "p6_results_commit": "8df2ebac61bacd08309ea490309be5a8dcb943b2",
+  "seed": 20260912,
+  "primary_families": [
+    "bb84",
+    "bv",
+    "edc",
+    "hs",
+    "qrng",
+    "xor"
+  ],
+  "calibration_total_qubit_ceiling": 18,
+  "width_slots": [
+    8,
+    12,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+  ],
+  "edc_actual_qubits": "q-1; data=q/2; syndrome=q/2-1",
+  "tasklets": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+  ],
+  "dpus": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "topology_tasklets": [
+    8,
+    24
+  ],
+  "supplementary_resource_case": "stress_n16_l2",
+  "supplementary_quantization_cases": [
+    "stress_n16_l2",
+    "stress_n18_l2",
+    "ghz_n18"
+  ],
+  "supplementary_widths": [
+    8,
+    12,
+    16,
+    18
+  ],
+  "float_policy": "split_complex_float32_v1",
+  "int8_policy": "complex_int8_shared_scale_v1",
+  "schedule": "static_dag_waves_v1",
+  "geometry": "panel_only_v1",
+  "transport": "packed_wave_v1",
+  "warmup_blocks": [
+    0
+  ],
+  "measured_blocks": {
+    "T": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "D": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "A": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "Q": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "W": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "S": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "calibration_path": "deterministic_opt_einsum_greedy",
+  "topology_selection": {
+    "metric": "prepared_call_s",
+    "blocks": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "candidates_per_policy_per_family": 14,
+    "objective": "minimum median; exact ties: fewer DPUs, fewer tasklets, cell_id",
+    "numeric_eligibility": "f32 full qualification; int8 exact same-policy execution and finite output, report approximation independently",
+    "frozen_before": "R path generation and final W/S measurements",
+    "no_final_feedback": true
+  },
+  "r_policy": {
+    "method_id": "p6_R_transfer_v1",
+    "profile_path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/evidence_manifests/pretest_profile.json",
+    "normalization_path": "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/evidence_manifests/normalization.json",
+    "model_id": "upmem_launch_cost_v1",
+    "integer_weights": [
+      1,
+      2,
+      1,
+      1,
+      5
+    ],
+    "proposal_objective": "cotengra_tree_flops_v1",
+    "selection_objective": "upmem_launch_cost_v1",
+    "proposals": 128,
+    "startup_trials": 16,
+    "master_seed": 20260909,
+    "costmod": {
+      "low": 0.1,
+      "high": 4.0,
+      "log": false
+    },
+    "temperature": {
+      "low": 0.001,
+      "high": 1.0,
+      "log": true
+    },
+    "parallel": false,
+    "accel": false,
+    "simplify": true,
+    "scoring_policy": "float32 at selected float32 topology",
+    "shared_path_consumers": [
+      "upmem_f32",
+      "upmem_int8",
+      "numpy_f32_p1"
+    ],
+    "greedy_in_pool": true,
+    "require_all_dpus_active": false,
+    "proposal_timeout_s": 300,
+    "lowering_timeout_s": 60,
+    "search_timeout_s": 7200,
+    "maximum_planned_work_units": 65536,
+    "maximum_semantic_identity_expansion_units": 1000000,
+    "host_memory_admission_bytes": 8589934592,
+    "fit_or_renormalize": false,
+    "new_domain_label": "fixed-model transfer outside original D1/D4,T8 domain where applicable",
+    "on_no_path": "record no_selected_R_path; do not switch to greedy; QuEST remains runnable"
+  },
+  "final_arms": [
+    "upmem_f32",
+    "upmem_int8",
+    "quest32_p8",
+    "quest32_p1",
+    "numpy_f32_p1"
+  ],
+  "final_primary_metric": "job_to_state_cached_path_s",
+  "search_accounting": {
+    "separate_once_per_case": true,
+    "amortization_reuse_counts": [
+      1,
+      10,
+      100
+    ],
+    "cold_total_label": "derived serial cold-start estimate, not measured cold latency"
+  },
+  "rank_path": "/dev/dpu_rank1",
+  "rank_count": 1,
+  "rank_capacity": 64,
+  "host": "safari-baguette1.ethz.ch",
+  "sdk_version": "2023.1.0",
+  "python_major_minor": [
+    3,
+    10
+  ],
+  "cpu_policy": "first 8 permitted distinct physical cores of first permitted socket/NUMA node; stop if fewer; no claim of exclusivity from affinity",
+  "host_memory_budget_bytes": 8589934592,
+  "child_address_space_bytes": 34359738368,
+  "required_free_memory_bytes": 42949672960,
+  "planning_reference_work_bytes_limit": 12884901888,
+  "configure_free_storage_bytes": 4294967296,
+  "before_attempt_free_storage_bytes": 2147483648,
+  "emergency_free_storage_bytes": 536870912,
+  "attempt_native_timeout_s": 300,
+  "attempt_worker_timeout_s": 900,
+  "calibration_prepare_case_timeout_s": 300,
+  "worker_elapsed_ceiling_s": 172800,
+  "overall_controller_wall_ceiling_s": 259200,
+  "hardware_occupancy_wait_s": 900,
+  "validation": {
+    "atol": 1e-05,
+    "rtol": 1e-05,
+    "relative_l2_max": 1e-05,
+    "norm_drift_max": 2e-05,
+    "small_reference_atol": 1e-12,
+    "small_reference_rtol": 1e-12,
+    "int8_approximation_threshold": null,
+    "phase_alignment": "diagnostic_only",
+    "nonfinite_allowed": false
+  },
+  "bootstrap": {
+    "draws": 10000,
+    "seed": 20260912,
+    "method": "phase-wise complete measured-block resampling; fixed-family geometric mean; shared draws for shared controls",
+    "calibration_selection_refit": false
+  },
+  "qualification_fixtures": [
+    "qual_hs_n04",
+    "qual_stress_n04_l2"
+  ],
+  "quest_semantic_fixtures": [
+    "qual_bb84_n04",
+    "qual_bv_n04",
+    "qual_edc_n03",
+    "qual_hs_n04",
+    "qual_qrng_n04",
+    "qual_xor_n04",
+    "qual_stress_n04_l2",
+    "qual_bell_n02"
+  ],
+  "expected": {
+    "distinct_performance_circuits": 53,
+    "calibration_analysis_memberships": 553,
+    "calibration_unique_cells": 434,
+    "calibration_slots": 2674,
+    "calibration_warmups": 434,
+    "calibration_measured": 2240,
+    "duplicate_slots_avoided_within_calibration": 714,
+    "final_case_templates": 52,
+    "final_cell_templates": 260,
+    "final_slots": 1560,
+    "final_warmups": 260,
+    "final_measured": 1300,
+    "final_physical_slots": 624,
+    "final_cpu_slots": 936,
+    "benchmark_slots": 4234,
+    "benchmark_warmups": 694,
+    "benchmark_measured": 3540,
+    "benchmark_physical_slots": 3298,
+    "upmem_execution_configurations": 54,
+    "physical_qualification_attempts": 108,
+    "simulator_qualification_attempts": 108,
+    "quest_qualification_calls": 32,
+    "physical_attempt_ceiling_including_qualification": 3406,
+    "final_searches": 52,
+    "final_search_proposals": 6656,
+    "small_R_qualification_searches": 4,
+    "total_search_proposal_ceiling": 7168
+  },
+  "thread_environment": {
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_PROC_BIND": "TRUE",
+    "OMP_PLACES": "cores",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONHASHSEED": "0",
+    "OMP_NUM_THREADS": "arm-dependent: 8 only for QuEST P8; 1 otherwise"
+  }
+}

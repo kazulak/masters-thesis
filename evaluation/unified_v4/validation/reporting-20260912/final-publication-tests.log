@@ -1,0 +1,8 @@
+----------------------------------------------------------------------
+Ran 7 tests in 0.186s
+
+OK
+Saved table: T3_ablation_cumulative.typ
+Saved table: T5_selection_winners.typ
+Saved table: T6_cold_amortized_costs.typ
+Saved table: T7_campaign_accounting.typ

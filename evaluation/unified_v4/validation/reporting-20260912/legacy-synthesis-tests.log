@@ -1,0 +1,56 @@
+test_accuracy_false (test_synthesis.CampaignTests.test_accuracy_false) ... ok
+test_complete_shape_and_intervals (test_synthesis.CampaignTests.test_complete_shape_and_intervals) ... ok
+test_duplicate_attempt (test_synthesis.CampaignTests.test_duplicate_attempt) ... ok
+test_duplicate_summary (test_synthesis.CampaignTests.test_duplicate_summary) ... ok
+test_extra_attempt (test_synthesis.CampaignTests.test_extra_attempt) ... ok
+test_failed_status (test_synthesis.CampaignTests.test_failed_status) ... ok
+test_frontier_mismatch (test_synthesis.CampaignTests.test_frontier_mismatch) ... ok
+test_geometry_error (test_synthesis.CampaignTests.test_geometry_error) ... ok
+test_history_context_not_promoted (test_synthesis.CampaignTests.test_history_context_not_promoted) ... ok
+test_missing_attempt (test_synthesis.CampaignTests.test_missing_attempt) ... ok
+test_nonfinite_timing (test_synthesis.CampaignTests.test_nonfinite_timing) ... ok
+test_output_size_error (test_synthesis.CampaignTests.test_output_size_error) ... ok
+test_p6_aggregate_error (test_synthesis.CampaignTests.test_p6_aggregate_error) ... ok
+test_p6_alias_error (test_synthesis.CampaignTests.test_p6_alias_error) ... ok
+test_p6_ratio_error (test_synthesis.CampaignTests.test_p6_ratio_error) ... ok
+test_quant_compression_error (test_synthesis.CampaignTests.test_quant_compression_error) ... ok
+test_scalar_error_bound (test_synthesis.CampaignTests.test_scalar_error_bound) ... ok
+test_warmup_missing (test_synthesis.CampaignTests.test_warmup_missing) ... ok
+test_warmup_reclassified (test_synthesis.CampaignTests.test_warmup_reclassified) ... ok
+test_wrong_arm (test_synthesis.CampaignTests.test_wrong_arm) ... ok
+test_wrong_block (test_synthesis.CampaignTests.test_wrong_block) ... ok
+test_wrong_coverage (test_synthesis.CampaignTests.test_wrong_coverage) ... ok
+test_wrong_efficiency (test_synthesis.CampaignTests.test_wrong_efficiency) ... ok
+test_wrong_interval (test_synthesis.CampaignTests.test_wrong_interval) ... ok
+test_wrong_mad (test_synthesis.CampaignTests.test_wrong_mad) ... ok
+test_wrong_ratio (test_synthesis.CampaignTests.test_wrong_ratio) ... ok
+test_wrong_reduction (test_synthesis.CampaignTests.test_wrong_reduction) ... ok
+test_wrong_summary (test_synthesis.CampaignTests.test_wrong_summary) ... ok
+test_bad_manifest_rejected (test_synthesis.GitTests.test_bad_manifest_rejected) ... ok
+test_pinned_git_and_manifest (test_synthesis.GitTests.test_pinned_git_and_manifest) ... ok
+test_boolean_values (test_synthesis.NumericTests.test_boolean_values) ... ok
+test_bootstrap_nonpositive (test_synthesis.NumericTests.test_bootstrap_nonpositive) ... ok
+test_bootstrap_repeatable (test_synthesis.NumericTests.test_bootstrap_repeatable) ... ok
+test_bootstrap_self (test_synthesis.NumericTests.test_bootstrap_self) ... ok
+test_bootstrap_unequal (test_synthesis.NumericTests.test_bootstrap_unequal) ... ok
+test_csv_bad_shape (test_synthesis.NumericTests.test_csv_bad_shape) ... ok
+test_csv_duplicate_header (test_synthesis.NumericTests.test_csv_duplicate_header) ... ok
+test_median_not_mean (test_synthesis.NumericTests.test_median_not_mean) ... ok
+test_missing_number (test_synthesis.NumericTests.test_missing_number) ... ok
+test_nonfinite (test_synthesis.NumericTests.test_nonfinite) ... ok
+test_optional_number (test_synthesis.NumericTests.test_optional_number) ... ok
+test_original_history_source_id (test_synthesis.NumericTests.test_original_history_source_id) ... ok
+test_path_traversal (test_synthesis.NumericTests.test_path_traversal) ... ok
+test_ratio_reduction (test_synthesis.NumericTests.test_ratio_reduction) ... ok
+test_real_p6_numbers (test_synthesis.NumericTests.test_real_p6_numbers) ... ok
+test_real_quantization_numbers (test_synthesis.NumericTests.test_real_quantization_numbers) ... ok
+test_regression_increase (test_synthesis.NumericTests.test_regression_increase) ... ok
+test_strict_boolean (test_synthesis.NumericTests.test_strict_boolean) ... ok
+test_strict_integer (test_synthesis.NumericTests.test_strict_integer) ... ok
+test_typst_escaping (test_synthesis.NumericTests.test_typst_escaping) ... ok
+test_typst_shape_rejected (test_synthesis.NumericTests.test_typst_shape_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 51 tests in 3.163s
+
+OK

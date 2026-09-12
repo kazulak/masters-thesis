@@ -1,0 +1,20 @@
+=== Unified Evaluation v4 Publication Synthesis Build ===
+Generating figures F1..F6...
+Saved figure: F1_tasklet_speedup.svg and F1_tasklet_speedup.png
+Saved figure: F2_dpu_speedup.svg and F2_dpu_speedup.png
+Saved figure: F3_ablation_scaling.svg and F3_ablation_scaling.png
+Saved figure: F4_quantization_tradeoff.svg and F4_quantization_tradeoff.png
+Saved figure: F5_p6_transfer.svg and F5_p6_transfer.png
+Saved figure: F6_final_comparison.svg and F6_final_comparison.png
+Generating Typst tables T1..T7...
+Saved table: T1_tasklet_speedup.typ
+Saved table: T2_dpu_speedup.typ
+Saved table: T3_ablation_cumulative.typ
+Saved table: T4_quantization_error_cost.typ
+Saved table: T5_selection_winners.typ
+Saved table: T6_cold_amortized_costs.typ
+Saved table: T7_campaign_accounting.typ
+Generating README and SHA256SUMS...
+Saved README.md
+Saved SHA256SUMS with 20 files
+=== Synthesis Build Complete! ===
