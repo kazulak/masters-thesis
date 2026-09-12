@@ -77,27 +77,30 @@ The source size is 160 × 110 mm; PNG export is 300 dpi.
 
 **Caption:** Cumulative implementation changes across the six primary circuit
 families, using float32 and greedy contraction paths. Bars show median
-execution-call wall time divided by the same circuit's A0 median; lower values
-mean shorter runtime. Each median summarizes seven measured blocks. Whiskers
-show raw median absolute deviation divided by the fixed A0 median, describing
-runtime dispersion rather than confidence intervals and omitting baseline
-uncertainty. A0 self-normalizes to exactly 1× with zero whisker. Execution-call
+execution-call wall time as a percentage of the same circuit's serial baseline;
+lower bars mean shorter runtime. Each step retains the preceding changes. Each
+median summarizes seven measured blocks. Whiskers show raw median absolute
+deviation scaled by the fixed baseline median, describing runtime dispersion
+rather than confidence intervals and omitting baseline uncertainty. The baseline
+self-normalizes to exactly 100% with zero whisker. Execution-call
 time includes session opening, execution and transfers, output materialization,
 and session closing; it excludes circuit lowering, contraction-path search,
 DAG construction and physical mapping. EDC uses 17 qubits; the other families
-use 18 qubits. The A0/A4 six-family geometric-mean speedup is approximately 6.25×.
+use 18 qubits. The baseline-to-final six-family geometric-mean speedup is
+approximately 6.25×.
 
-| Step | Configuration |
+| Plot label | Configuration |
 | --- | --- |
-| A0 | D1/T1, serial, unfused |
-| A1 | D1/T8, serial, unfused |
-| A2 | D4/T8, serial, unfused |
-| A3 | D4/T8, serial, complex launch / four-product fusion |
-| A4 | D4/T8, static-DAG scheduling, complex launch / four-product fusion |
+| Baseline | 1 DPU, 1 tasklet, serial, unfused |
+| 8 tasklets | 1 DPU, 8 tasklets, serial, unfused |
+| 4 DPUs | 4 DPUs, 8 tasklets per DPU, serial, unfused |
+| Launch fusion | 4 DPUs, 8 tasklets per DPU, serial, complex launch / four-product fusion |
+| DAG | 4 DPUs, 8 tasklets per DPU, static-DAG scheduling, complex launch / four-product fusion |
 
 Fusion refers to combining the real products of complex contractions into
 launches, not quantum-gate fusion. These are cumulative configurations rather
-than independently estimated contributions from each change.
+than independently estimated contributions from each change. These five steps
+correspond to A0–A4 in the canonical evidence.
 
 F3 reads only canonical `unified_final_v4/readout/A.csv` and shows all 30 primary
 family/configuration points. The source size is 160 × 115 mm; PNG is 300 dpi.
@@ -106,7 +109,7 @@ family/configuration points. The source size is 160 × 115 mm; PNG is 300 dpi.
 
 [SVG](generated/figures/fig04_quantization.svg) · [PNG](generated/figures/fig04_quantization.png)
 
-**Caption:** Physical UPMEM execution-call runtime ratios between split-complex
+**Caption:** Physical UPMEM execution-call wall-time ratios between split-complex
 float32 and complex int8 with shared scaling. Each ratio divides the float32
 median by the int8 median for the same circuit, DPU count and tasklets per DPU;
 values above 1× favor int8. Both policies use static-DAG scheduling, complex
@@ -129,33 +132,48 @@ post-hoc approximation-quality tuning.
 F4 reads only canonical `unified_final_v4/readout/Q.csv`; 168 timing medians
 produce 84 matched-policy ratios. The source size is 160 × 110 mm; PNG is 300 dpi.
 
-## F5 — accepted P6 path-selection comparison
+## F5 — path selection
 
 [SVG](generated/figures/fig05_path_selection.svg) · [PNG](generated/figures/fig05_path_selection.png)
 
-**Caption:** Path-selection comparisons from the separate, accepted P6 test
-campaign: G is greedy; F selects by FLOP count from FLOP-guided adaptive search;
-R selects from the same pool using the UPMEM cost model; U uses that model for
-both adaptive generation and selection from its own pool. Both pools also
-include the greedy candidate. Each panel shows its numerator's session-inclusive time
-divided by its denominator's time; values above 1× favor the denominator method.
-Cell estimates are ratios of medians from five measured blocks. Session-inclusive
-time sums session opening, execution wall time and session closing; it excludes
-search and is not full job-to-state time.
+**Caption:** Execution speedup from contraction-path selection on six held-out
+circuit families, using float32 and eight tasklets per DPU. Each panel names the
+method being evaluated and its reference method. Speedup divides the reference
+method's median execution time by the evaluated method's median: points to the
+right of 1× indicate faster execution, and points to the left indicate slower
+execution. All panels use the same linear 0.5–3.0× scale. Each median summarizes
+five measured blocks.
 
-Diamonds show family-balanced geometric ratios for all 12 test cells and for
-each six-cell topology group. Circles and squares show the six circuit families
-at D1/T8 and D4/T8, respectively. Horizontal segments reproduce the accepted
-descriptive paired-block 95% bootstrap intervals, with common block resampling
-across methods and cells. Families and cells are fixed, and method aliases that
-select the same path share physical samples. The primary comparison is R/U.
-Inference is limited to these test cells, five timing blocks and one paired
-search-seed schedule. Horizontal axes are logarithmic, with different ranges
-per contrast to make the stored intervals legible.
+Time includes opening the runtime, executing the already selected and mapped
+path (host work, transfers and kernels), and closing the runtime. Path search
+and logical/physical planning are excluded. This is the accepted
+`session_inclusive_s` metric, not full job-to-state time.
 
-F5 reads canonical P6 `readout/aggregates.csv` and `readout/contrasts.csv`
-directly. It displays 12 aggregate and 48 cell estimates across four contrasts;
-it does not rerun the bootstrap. The source size is 160 × 165 mm; PNG is 300 dpi.
+The highlighted black diamond and bold value show the family-balanced geometric
+mean speedup across all six families and both DPU configurations. These are
+12 circuit/configuration combinations, with equal weight per family. The next
+two rows summarize each DPU configuration across the six families. Blue circles
+denote one DPU; orange squares denote four DPUs, for both summary and per-circuit
+rows. Horizontal segments are the accepted descriptive paired-block 95%
+bootstrap intervals, based on 10,000 common resamples of the five block IDs
+across all methods and circuit/configuration combinations. Narrow intervals can
+be smaller than their markers on the shared scale. Aliases selecting the same
+path share physical measurements and do not add independent observations.
+
+FLOP-guided search selects by FLOP count from an adaptive candidate pool.
+Cost-model reranking selects from that same pool using the UPMEM cost model.
+UPMEM-guided search uses that model for both adaptive generation and selection
+from its own pool. Both pools include the greedy candidate. The declared primary
+comparison is UPMEM-guided search against cost-model reranking (panel c).
+Inference is limited to the fixed test circuits, five timing blocks and one
+paired search-seed schedule; these intervals do not establish robustness across
+new circuits or search seeds.
+
+F5 reads `readout/aggregates.csv` and `readout/contrasts.csv` directly from the
+[accepted path-selection package](../implementation/thesis_results/upmem_cost_guided_path_v1/).
+It displays 12 aggregate and 48 individual circuit/configuration estimates
+across four contrasts; it does not rerun the bootstrap. The source size is
+160 × 165 mm; PNG is 300 dpi.
 
 ## F6 — final CPU and UPMEM comparison
 

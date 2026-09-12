@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from common import V4_READOUT, publication_style, save_figure  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.ticker import PercentFormatter  # noqa: E402
 
 
 CASES = (
@@ -18,6 +19,7 @@ CASES = (
     ("xor_n18", "XOR", 18),
 )
 STEPS = ("A0", "A1", "A2", "A3", "A4")
+STEP_LABELS = ("Baseline", "8\ntasklets", "4\nDPUs", "Launch\nfusion", "DAG")
 
 
 def main():
@@ -54,15 +56,15 @@ def main():
         ax.axhline(1, color="#888888", linestyle="--", linewidth=0.55, zorder=2)
         ax.set_title(rf"$\mathbf{{{letter}}}$  {title}", loc="left", pad=7)
         ax.set_title(f"{qubits} qubits", loc="right", fontsize=7.5, pad=7)
-        ax.set_xticks(range(5), labels=STEPS)
+        ax.set_xticks(range(5), labels=STEP_LABELS)
+        ax.tick_params(axis="x", labelsize=7)
         ax.set_ylim(0, 1.1)
         ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+        ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0, symbol=""))
         ax.grid(axis="y", color="#e3e3e3", linewidth=0.45, zorder=0)
 
-    fig.supylabel("Runtime relative to A0 (×)", fontsize=8)
-    fig.supxlabel("A0: D1/T1 · A1: D1/T8 · A2–A4: D4/T8\n"
-                  "A0–A2: serial, unfused · A3: + complex launch fusion · A4: + static DAG",
-                  fontsize=7)
+    fig.supylabel("Runtime (% of baseline)", fontsize=8)
+    fig.supxlabel("Cumulative changes", fontsize=8)
     save_figure(fig, "fig03_ablation")
 
 
