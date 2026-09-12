@@ -1,0 +1,33 @@
+{
+  "schema": "unified_v4_retention_receipt_v1",
+  "base_commit": "683194cf4895420898297095a0d92e83c282b355",
+  "implementation_commit": "f6b570a98a610d41b5b16401a42ce12a94042d38",
+  "evaluator_commit": "73e415abac7bcac3609693d4eb378b57bf5a42ec",
+  "run_id": "unified-v4-20260912T041549Z-73e415abac7b",
+  "archive_A_path": "/home/tom/evidence/unified-final-v4/archive-A/unified-v4-20260912T041549Z-73e415abac7b",
+  "archive_B_path": "/home/tom/evidence/unified-final-v4/archive-B/unified-v4-20260912T041549Z-73e415abac7b",
+  "archive_files_count": 8288,
+  "protocol_sha256": "4acdada0dd2aa7840a79cd18d0b0303dad7393f5b7d7e9e7884beb6d50558c6f",
+  "static_manifest_sha256": "98cd0dc2ca6d5b9d34ff3496004193265d6d1f146627763bc7248235c091364c",
+  "selection_sha256": "a1b8ba879d353490c51bc43051ff7ef8ff0c1dc74490d8ee592d6b6e00a5add1",
+  "final_manifest_sha256": "7c106a45779a465c51cd4ad41cc17e8587236c4fd9d365315dc0a334d06a0bfb",
+  "calibration_rows_sha256": "d8b82c032c1847d50566ec14af2ee8508adc3c43f7ba31758802de94d7677086",
+  "final_rows_sha256": "a6e88c99fed8a501e1b059083adeeccecbe74dca48e2098564325edaae1792b8",
+  "path_records_sha256": "c2925d93ce12d217e0266c2ba48545e1bd101115b767f5b41a2c9aa1dd5a3fa6",
+  "attempt_counts": {
+    "qualification_preflight_rank": 1,
+    "qualification_quest": 32,
+    "qualification_upmem_sim": 108,
+    "qualification_upmem_phy": 108,
+    "qualification_tiny_r_searches": 4,
+    "calibration_planned_slots": 2674,
+    "calibration_issued_slots": 2674,
+    "calibration_success_slots": 2674,
+    "final_planned_slots": 1560,
+    "final_issued_slots": 1452,
+    "final_success_slots": 1452,
+    "final_not_issued_unsupported": 108,
+    "r_path_searches": 52,
+    "r_path_proposals": 6656
+  }
+}
