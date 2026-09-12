@@ -1,15 +1,29 @@
-# Third-party software
+# Licensing and third-party material
 
-No project-wide license is added by this documentation cleanup. Each external
-component retains its upstream license and attribution requirements.
+Original project code, build scripts and tests use the [MIT License](LICENSE).
+Original research data, prose, figures, table outputs and review PDF use
+[Creative Commons Attribution 4.0 International](LICENSE-DATA). Attribution should
+identify Tomasz Kazulak, this repository, the release version and any modifications;
+[CITATION.cff](CITATION.cff) supplies the artifact citation.
 
-The Git submodules under `thesis/implementation/external/` are pinned to:
+These grants apply only to original material the author can license. Third-party
+software, quotations, figures, benchmark material and bundled upstream notices
+retain their existing terms. They are not relicensed by the root licenses.
+Git history retains the notices and provenance of historical source snapshots.
 
-| Component | Commit | Role |
+| Component | Pinned upstream source | Terms and retained notice |
 | --- | --- | --- |
-| [QuEST](https://github.com/quest-kit/QuEST) | `9d7618d7263e3bfba433b88cf1eac0647f08fa0a` | Full-state reference |
-| [SimplePIM](https://github.com/CMU-SAFARI/SimplePIM) | `1d639c53532555f01e9f71d872e7712b166d6cba` | Bounded initialization/management support |
-| [PID-Comm](https://github.com/AIS-SNU/PID-Comm) | `cecc39e29e6576ced73b2041db6e357769a6531a` | Retained reference, not the final communication provider |
+| QuEST | `9d7618d7263e3bfba433b88cf1eac0647f08fa0a` | [MIT](release/licenses/QuEST.txt) |
+| SimplePIM | `1d639c53532555f01e9f71d872e7712b166d6cba` | [MIT](release/licenses/SimplePIM.txt) |
+| PID-Comm | `cecc39e29e6576ced73b2041db6e357769a6531a` | [BSD 3-Clause](release/licenses/PID-Comm.txt) |
+| QASMBench | `357b942396d5c2b7cbc1c229c585a6ef5ccaebac` | [Battelle license](release/licenses/QASMBench-LICENSE.txt) and [notice](release/licenses/QASMBench-NOTICE.txt) |
 
-Consult each pinned upstream license. The UPMEM SDK is an external system dependency;
-Python dependencies retain their respective terms. This repository does not relicense them.
+The first three are Git submodules in `thesis/implementation/external/`.
+QASMBench is the cited reference for the HS workload construction; the pinned
+LICENSE and NOTICE are retained without replacing them with a generic label.
+Third-party sources cited by the literature review retain their rights.
+
+The UPMEM SDK is an externally installed dependency and is not bundled in the
+release assets. It requires its own upstream terms. Python packages, Typst,
+DejaVu fonts and system tooling retain their upstream licenses; the release
+records versions and font hashes, not ownership of those dependencies.

@@ -1,0 +1,19 @@
+test_archive_count_must_match_retention (test_reporting.AppendixIntegrity.test_archive_count_must_match_retention) ... ok
+test_no_path_execution_cannot_be_reported_as_zero (test_reporting.AppendixIntegrity.test_no_path_execution_cannot_be_reported_as_zero) ... ok
+test_conflicting_physical_slot_is_rejected (test_reporting.CorrectnessTable.test_conflicting_physical_slot_is_rejected) ... ok
+test_identical_physical_slots_are_counted_once (test_reporting.CorrectnessTable.test_identical_physical_slots_are_counted_once) ... ok
+test_int8_error_is_disclosed_without_a_posthoc_threshold (test_reporting.CorrectnessTable.test_int8_error_is_disclosed_without_a_posthoc_threshold) ... ok
+test_missing_primary_observation_is_not_silently_dropped (test_reporting.CorrectnessTable.test_missing_primary_observation_is_not_silently_dropped) ... ok
+test_primary_extrema_include_calibration_and_final (test_reporting.CorrectnessTable.test_primary_extrema_include_calibration_and_final) ... ok
+test_warmups_do_not_change_extrema (test_reporting.CorrectnessTable.test_warmups_do_not_change_extrema) ... ok
+test_cpu_only_endpoint_does_not_enter_common_width_summary (test_reporting.MainTableDefinitions.test_cpu_only_endpoint_does_not_enter_common_width_summary) ... ok
+test_cpu_summary_is_geometric_over_matched_widths_and_families (test_reporting.MainTableDefinitions.test_cpu_summary_is_geometric_over_matched_widths_and_families) ... ok
+test_edc_uses_data_and_syndrome_wires (test_reporting.MainTableDefinitions.test_edc_uses_data_and_syndrome_wires) ... ok
+test_path_table_preserves_stored_ratio_orientation_and_intervals (test_reporting.MainTableDefinitions.test_path_table_preserves_stored_ratio_orientation_and_intervals) ... ok
+test_percentile_interval_can_exclude_its_point_estimate (test_reporting.MainTableDefinitions.test_percentile_interval_can_exclude_its_point_estimate) ... ok
+test_resources_come_from_frozen_policy_specific_winners (test_reporting.MainTableDefinitions.test_resources_come_from_frozen_policy_specific_winners) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.023s
+
+OK

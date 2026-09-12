@@ -19,6 +19,7 @@ import fcntl
 import hashlib
 import json
 import math
+from numbers import Real
 import os
 from pathlib import Path, PurePosixPath
 import platform
@@ -299,6 +300,10 @@ def check_accuracy(err: Mapping[str, object], val_spec: Mapping[str, object]) ->
     norm_drift = err.get("norm_drift")
     max_abs = err.get("max_abs")
     ref_peak = err.get("reference_peak")
+    if any(isinstance(value, bool) or not isinstance(value, Real)
+           or not math.isfinite(value) or value < 0
+           for value in (rel_l2, norm_drift, max_abs, ref_peak)):
+        return False
     if rel_l2 is None or rel_l2 > val_spec["relative_l2_max"]:
         return False
     if norm_drift is None or norm_drift > val_spec["norm_drift_max"]:

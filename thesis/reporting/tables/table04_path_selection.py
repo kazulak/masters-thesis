@@ -48,7 +48,7 @@ def build_rows():
             record = lookup[(contrast, group)]
             ratio = float(record["family_balanced_geometric_ratio"])
             low, high = float(record["paired_bootstrap_low"]), float(record["paired_bootstrap_high"])
-            if not all(math.isfinite(v) and v > 0 for v in (ratio, low, high)) or not low <= ratio <= high:
+            if not all(math.isfinite(v) and v > 0 for v in (ratio, low, high)) or low > high:
                 raise ValueError(f"Invalid accepted estimate/interval: {contrast}, {group}")
             topologies = ("1dpu_t8", "4dpu_t8") if group == "all" else (group,)
             ratios = [method_lookup[(f, t, reference)] / method_lookup[(f, t, method)] for f in PRIMARY_FAMILIES for t in topologies]

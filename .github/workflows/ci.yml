@@ -5,21 +5,23 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   software-and-evidence:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.10"
 
@@ -32,6 +34,7 @@ jobs:
           echo "checked_out_tree=$(git rev-parse 'HEAD^{tree}')"
           echo "shallow=$(git rev-parse --is-shallow-repository)"
           python --version
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/source.txt"
           for tool in cc dpu-pkg-config dpu-upmem-dpurte-clang; do
             if command -v "$tool" >/dev/null 2>&1; then
               command -v "$tool"
@@ -54,6 +57,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -c ci/constraints.txt -e ".[dev,path-search]"
           python -m pip check
+          python -m pip freeze > "$RUNNER_TEMP/implementation-packages.txt"
 
       - name: Build QuEST CPU runner
         run: make -C thesis/implementation/native/quest_cpu
@@ -66,7 +70,10 @@ jobs:
       - name: Run implementation tests
         env:
           PYTEST_ADDOPTS: "-ra --junitxml=${{ runner.temp }}/masters-thesis-pytest.xml"
-        run: make -C thesis/implementation PYTHON=python test
+        run: |
+          set -o pipefail
+          unset UPMEM_ALLOW_PHYSICAL_HARDWARE
+          make -C thesis/implementation PYTHON=python test 2>&1 | tee "$RUNNER_TEMP/implementation-tests.log"
 
       - name: Report actual test coverage
         if: always()
@@ -128,9 +135,12 @@ jobs:
               stream.write(text)
           PY
 
+      - name: Native CPU contract tests
+        run: python -m pytest thesis/implementation/native/quest_cpu/tests --junitxml="$RUNNER_TEMP/native-cpu.xml"
+
       - name: Run Ruff
         run: |
-          python -m ruff check thesis/implementation/src thesis/implementation/tests thesis/implementation/scripts
+          python -m ruff check thesis/implementation/src thesis/implementation/tests thesis/implementation/scripts thesis/reporting tools
 
       - name: Verify frozen P6 audit package
         working-directory: thesis/implementation/thesis_results/upmem_cost_guided_path_v1
@@ -148,3 +158,103 @@ jobs:
           make PYTHON=python run CONFIG=configs/tn_benchmark_reset.yml OUTPUT="$RUN_ROOT/run"
           make PYTHON=python verify INPUT="$RUN_ROOT/run"
           make PYTHON=python report INPUT="$RUN_ROOT/run" REPORT_OUTPUT="$RUN_ROOT/report"
+
+      - name: Retain software validation receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: software-validation-${{ github.sha }}
+          retention-days: 90
+          path: |
+            ${{ runner.temp }}/masters-thesis-pytest.xml
+            ${{ runner.temp }}/native-cpu.xml
+            ${{ runner.temp }}/implementation-tests.log
+            ${{ runner.temp }}/implementation-packages.txt
+            ${{ runner.temp }}/source.txt
+
+  evaluation-contracts:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.10"
+      - name: Install software contract dependencies
+        run: |
+          python -m pip install -c thesis/implementation/ci/constraints.txt -e './thesis/implementation[dev,path-search]'
+          python -m pip check
+          python -m pip freeze > "$RUNNER_TEMP/evaluation-packages.txt"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/source.txt"
+      - name: Evaluation and release verifier regressions
+        run: |
+          unset UPMEM_ALLOW_PHYSICAL_HARDWARE
+          python -m pytest evaluation/final_v1/tests --junitxml="$RUNNER_TEMP/final-v1.xml"
+          python -m pytest evaluation/unified_v4/tests --junitxml="$RUNNER_TEMP/unified-v4.xml"
+          python -m pytest tools/tests --junitxml="$RUNNER_TEMP/release-verifier.xml"
+          python -m pytest thesis/implementation/thesis_results/upmem_cost_guided_path_v1/tools/test_p6_readout.py --junitxml="$RUNNER_TEMP/path-readout.xml"
+      - name: Verify frozen compact evidence and published correction receipt
+        run: |
+          python tools/verify_release.py --repo . --output "$RUNNER_TEMP/compact-evidence.json"
+          python evaluation/unified_v4/validation/reporting-20260912/verify.py > "$RUNNER_TEMP/correction-receipt.txt"
+      - name: Retain evaluation validation receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: evaluation-validation-${{ github.sha }}
+          retention-days: 90
+          path: |
+            ${{ runner.temp }}/*.xml
+            ${{ runner.temp }}/compact-evidence.json
+            ${{ runner.temp }}/correction-receipt.txt
+            ${{ runner.temp }}/evaluation-packages.txt
+            ${{ runner.temp }}/source.txt
+
+  reporting:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      MPLCONFIGDIR: /tmp/thesis-reporting-mpl
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13.15"
+      - name: Install frozen reporting environment
+        run: |
+          python -m pip install -r thesis/reporting/requirements.lock
+          python -m pip check
+          python -m pip freeze > "$RUNNER_TEMP/reporting-packages.txt"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/source.txt"
+      - name: Test and rebuild the presentation
+        run: |
+          set -o pipefail
+          python -Werror::ResourceWarning -m unittest discover -s thesis/reporting/tests -v 2>&1 | tee "$RUNNER_TEMP/reporting-tests.log"
+          python tools/check_rendering_environment.py > "$RUNNER_TEMP/rendering-environment.json"
+          python -Werror::ResourceWarning thesis/reporting/build_all.py
+          git diff --exit-code -- thesis/reporting/generated
+          python tools/verify_release.py --repo . --output "$RUNNER_TEMP/compact-evidence.json"
+      - name: Install pinned Typst and compile the review
+        run: |
+          curl -fsSL https://github.com/typst/typst/releases/download/v0.13.1/typst-x86_64-unknown-linux-musl.tar.xz -o "$RUNNER_TEMP/typst.tar.xz"
+          echo "$(cat release/typst-archive.sha256)  $RUNNER_TEMP/typst.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/typst.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/typst-x86_64-unknown-linux-musl/typst" compile --root . thesis/reporting/review.typ "$RUNNER_TEMP/thesis-reporting-review.pdf"
+      - name: Retain reporting validation and review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: reporting-validation-${{ github.sha }}
+          retention-days: 90
+          path: |
+            ${{ runner.temp }}/reporting-tests.log
+            ${{ runner.temp }}/reporting-packages.txt
+            ${{ runner.temp }}/rendering-environment.json
+            ${{ runner.temp }}/compact-evidence.json
+            ${{ runner.temp }}/source.txt
+            ${{ runner.temp }}/thesis-reporting-review.pdf

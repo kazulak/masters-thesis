@@ -179,6 +179,21 @@ class MainTableDefinitions(unittest.TestCase):
                 self.assertEqual(len(families), 6)
                 self.assertAlmostEqual(actual, math.exp(statistics.mean(map(math.log, families))), places=12)
 
+    def test_percentile_interval_can_exclude_its_point_estimate(self):
+        path = ROOT / "thesis/implementation/thesis_results/upmem_cost_guided_path_v1/readout/aggregates.csv"
+        rows = csv_rows(path)
+        record = next(r for r in rows if r["metric"] == "session_inclusive_s"
+                      and r["contrast"] == "R/U" and r["group"] == "all")
+        ratio = float(record["family_balanced_geometric_ratio"])
+        record["paired_bootstrap_low"] = str(ratio * 1.01)
+        record["paired_bootstrap_high"] = str(ratio * 1.02)
+        with replace_csv(path, rows):
+            result = next(r for r in module("table04_path_selection").build_rows() if r["contrast"] == "R/U")
+        self.assertGreater(result["all"]["low"], result["all"]["ratio"])
+        record["paired_bootstrap_high"] = str(ratio * 0.99)
+        with replace_csv(path, rows), self.assertRaises(ValueError):
+            module("table04_path_selection").build_rows()
+
     def test_cpu_only_endpoint_does_not_enter_common_width_summary(self):
         table = module("table05_cpu_comparison")
         expected = table.build_rows()

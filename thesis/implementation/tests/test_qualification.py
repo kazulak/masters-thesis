@@ -1428,6 +1428,7 @@ def test_bootstrap_detects_repository_root_gitmodules(
 
     assert calls[-1] == (["git", "submodule", "update", "--init", "--recursive"], repository)
     assert calls[0][1] == implementation
+    assert calls[0][0][-2:] == ["-e", ".[dev,path-search]"]
 
 
 def _archive(path: Path, member_name: str, *, kind: str = "file") -> None:

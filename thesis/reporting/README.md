@@ -18,11 +18,13 @@ hardware, benchmarks, path searches or canonical readout generation.
 
 ## Build and review
 
-Use Python ≥3.11 in a separate environment with `requirements.txt`. From the
+For the release, use Python 3.13.15 in a separate environment with
+`requirements.lock`. The broader `requirements.txt` is for development. From the
 repository root:
 
 ```sh
-python -m pip install -r thesis/reporting/requirements.txt
+python -m pip install -r thesis/reporting/requirements.lock
+python tools/check_rendering_environment.py
 python thesis/reporting/build_all.py
 typst compile --root . thesis/reporting/review.typ /tmp/thesis-reporting-review.pdf
 ```
@@ -37,7 +39,7 @@ python thesis/reporting/tables/table04_path_selection.py
 
 Python scripts work from any directory when invoked by absolute path. Generated
 SVG/PNG and Typst table fragments are tracked. The PDF above is a local review
-artifact, not a repository file. The [review document](review.typ) supplies titles,
+artifact, also attached to the artifact release. The [review document](review.typ) supplies titles,
 captions and main/appendix numbering; it is not the thesis manuscript.
 Typst 0.13.1 and DejaVu fonts are used for the review.
 
@@ -340,8 +342,8 @@ changes its named script and Typst fragment. Shared definitions require an
 explicitly broader task. Never edit accepted evidence, evaluation/implementation
 code, canonical CSVs, selections or paths while editing a presentation.
 
-The existing synthesis packages remain until the new reporting set is integrated
-into the manuscript. This package does not add a timing-decomposition figure or
+The obsolete synthesis framework is retired to historical README pointers.
+The current review uses only this reporting set; manuscript integration is future work. This package does not add a timing-decomposition figure or
 turn accounting, correctness and historical decisions into decorative plots.
 
 ## Local validation receipt — 2026-09-12
@@ -375,3 +377,14 @@ typst compile --root . thesis/reporting/review.typ /tmp/thesis-reporting-review.
 - All 1,264 tracked evaluation/implementation files matched their initial hashes
   and the reporting base. F1–F4 scripts and SVG/PNG outputs remained byte-identical.
   All changes are confined to `thesis/reporting/`.
+
+## Artifact release validation
+
+The receipt above describes the earlier reporting-only revision. The later
+[release audit](../../release/AUDIT.md) and
+[retained validation](../../release/validation/README.md) cover utility hardening,
+14 reporting tests, unchanged generated values and the frozen rendering environment.
+The [environment fingerprint](../../release/rendering-environment.json) records
+Python, package versions, FreeType, font bytes and Typst. CI verifies the fingerprint,
+rebuilds all 27 presentation files and compiles the review. Reporting never invokes
+canonical readout generation.

@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "Please cite this research artifact when using its code, evidence or figures."
+type: software
+title: "Quantum-circuit simulation on UPMEM: master's thesis research artifact"
+authors:
+  - family-names: Kazulak
+    given-names: Tomasz
+version: 1.0.0
+date-released: 2026-09-12
+repository-code: https://github.com/kazulak/masters-thesis
+url: https://github.com/kazulak/masters-thesis/releases/tag/thesis-artifact-v1.0.0
+license: MIT
+abstract: >-
+  Research implementation, immutable accepted experimental evidence, and direct-input
+  figures and tables for a master's thesis on tensor-network quantum-circuit
+  simulation on UPMEM. Original code is MIT licensed; original data, documentation
+  and figures use CC BY 4.0. Third-party materials retain their own terms.
