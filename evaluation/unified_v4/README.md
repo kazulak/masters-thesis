@@ -33,3 +33,9 @@ publishing. The readout validates sealed inputs, retained byte digests, slot
 identities and overlapping native/issued receipt fields. `accounting.json`
 distinguishes planned slots, actual issues, route outcomes and R-path admission
 frontiers. A readout build alone does not re-verify equality of the archive bytes.
+
+The [published local validation receipt](validation/reporting-20260912/README.md)
+contains the correction commit's original test logs, JUnit results, provenance,
+checksums and a verifier. It explicitly distinguishes local validation from
+GitHub-hosted CI, and retains both the initial location-dependent test failure
+and its successful durable-worktree rerun.

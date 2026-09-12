@@ -1,0 +1,3 @@
+# Preserve the whitespace in checksummed original test output and JUnit records.
+*.log -whitespace
+*.xml -whitespace

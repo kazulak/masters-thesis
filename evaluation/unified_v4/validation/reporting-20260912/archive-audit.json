@@ -1,0 +1,10 @@
+{
+  "archive_files_per_copy": 8288,
+  "dual_archive_all_bytes_equal": true,
+  "qualification": {
+    "upmem_phy_qualification": 108,
+    "upmem_sim_qualification": 108,
+    "quest_qualification": 32
+  },
+  "inventory_sha256": "fab1b2c4d3cb8cbba1f45e5ef850fc4403a537919af9dfb15ad2180cbf304970"
+}

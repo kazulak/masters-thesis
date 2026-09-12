@@ -1,0 +1,96 @@
+make: Entering directory '/tmp/unified-v4-correction.62RqhL/thesis/implementation'
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/tom/repos/masters-thesis/thesis/.venv/bin/python -m pytest -q
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+.....................................F.................................. [ 14%]
+........................................................................ [ 17%]
+........................................................................ [ 20%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 43%]
+........................................................................ [ 46%]
+........................................................................ [ 49%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+........................................................................ [ 69%]
+........................................................................ [ 72%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 89%]
+........................................................................ [ 92%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+.........................................                                [100%]
+=================================== FAILURES ===================================
+__________ test_two_copies_are_extracted_verified_and_not_same_inode ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d37d78e8190>
+
+    def test_two_copies_are_extracted_verified_and_not_same_inode(monkeypatch):
+        import upmem_cost_guided_evidence as evidence
+    
+        # Accepted copies may not reside under /tmp, including during this safety test.
+        parent = search.ROOT / "runs"
+        parent.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="archive-copy-test-", dir=parent) as directory:
+            root = Path(directory)
+            stage = root / "stage"
+            (stage / "raw").mkdir(parents=True)
+            (stage / "raw" / "fixture.txt").write_text("synthetic evidence fixture")
+            write_checksums(stage)
+            first, second = root / "first.tar.gz", root / "second.tar.gz"
+            with tarfile.open(first, "x:gz") as archive:
+                archive.add(stage, arcname="stage")
+            shutil.copyfile(first, second)
+            digest = hashlib.sha256(first.read_bytes()).hexdigest()
+            for archive in (first, second):
+                Path(str(archive) + ".sha256").write_text(f"{digest}  {archive.name}\n")
+            calls = []
+            def extract(raw, *args):
+                calls.append(raw)
+                assert (raw / "fixture.txt").read_text() == "synthetic evidence fixture"
+                return {"rows": [{"fixture": True}], "physical_stage_elapsed_s": 1.0}
+            monkeypatch.setattr(evidence, "extract_round_observations", extract)
+>           result = search.verify_round_archives([first, second], {}, {}, {}, {})
+
+tests/test_cost_guided_archive_copies.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+archives = [PosixPath('/tmp/unified-v4-correction.62RqhL/thesis/implementation/runs/archive-copy-test-m8xtdxbh/first.tar.gz'), PosixPath('/tmp/unified-v4-correction.62RqhL/thesis/implementation/runs/archive-copy-test-m8xtdxbh/second.tar.gz')]
+manifest = {}, workload = {}, binding = {}, study = {}
+
+    def verify_round_archives(archives: list[Path], manifest: dict, workload: dict, binding: dict, study: dict) -> dict:
+        """Reopen two durable copies and derive observations through canonical checks."""
+        from freeze_packed_operation_transport import _safe_extract
+        from qualify_quantized_upmem_execution import verify_checksums
+        from upmem_cost_guided_evidence import extract_round_observations
+    
+        if len(archives) != 2:
+            raise ValueError("Stage acceptance requires two archive copies")
+        paths = [Path(path).resolve(strict=True) for path in archives]
+        if paths[0].samefile(paths[1]):
+            raise ValueError("Two paths to the same archive are not independent copies")
+        if any(path.is_relative_to(root) for path in paths for root in (Path("/tmp"), Path("/dev/shm"), Path("/run"))):
+>           raise ValueError("Accepted archive copies must be in durable storage")
+E           ValueError: Accepted archive copies must be in durable storage
+
+scripts/upmem_cost_guided_path.py:1173: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_cost_guided_archive_copies.py::test_two_copies_are_extracted_verified_and_not_same_inode
+1 failed, 2488 passed in 301.27s (0:05:01)
+make: *** [Makefile:54: test] Error 1
+make: Leaving directory '/tmp/unified-v4-correction.62RqhL/thesis/implementation'

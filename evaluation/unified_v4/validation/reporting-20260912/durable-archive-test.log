@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.3, pluggy-1.6.0 -- /home/tom/repos/masters-thesis/thesis/.venv/bin/python
+cachedir: /tmp/unified-v4-validation/durable-pytest-cache
+rootdir: /home/tom/repos/masters-thesis-unified-v4/thesis/implementation
+configfile: pyproject.toml
+collecting ... collected 1 item
+
+tests/test_cost_guided_archive_copies.py::test_two_copies_are_extracted_verified_and_not_same_inode PASSED [100%]
+
+--- generated xml file: /tmp/unified-v4-validation/durable-archive-test.xml ----
+============================== 1 passed in 0.25s ===============================

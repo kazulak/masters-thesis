@@ -1,0 +1,47 @@
+test_accuracy_exact (test_contract.ContractTests) ... ok
+test_accuracy_nonfinite (test_contract.ContractTests) ... ok
+test_accuracy_phase_not_aligned (test_contract.ContractTests) ... ok
+test_all_tasklets (test_contract.ContractTests) ... ok
+test_case_count (test_contract.ContractTests) ... ok
+test_comparison_direction (test_contract.ContractTests) ... ok
+test_comparison_shared_resampling (test_contract.ContractTests) ... ok
+test_deterministic_order (test_contract.ContractTests) ... ok
+test_edc_ancillas (test_contract.ContractTests) ... ok
+test_exact_attempt_budget (test_contract.ContractTests) ... ok
+test_five_policies_only (test_contract.ContractTests) ... ok
+test_frozen_source (test_contract.ContractTests) ... ok
+test_historical_sources_pinned (test_contract.ContractTests) ... ok
+test_hs_even (test_contract.ContractTests) ... ok
+test_int8_quality_not_assumed (test_contract.ContractTests) ... ok
+test_json_nonfinite_forbidden (test_contract.ContractTests) ... ok
+test_mad_raw (test_contract.ContractTests) ... ok
+test_no_duplicate_cases (test_contract.ContractTests) ... ok
+test_no_guided_reoptimization (test_contract.ContractTests) ... ok
+test_no_invalid_timings (test_contract.ContractTests) ... ok
+test_norm_metrics_distinct (test_contract.ContractTests) ... ok
+test_one_rank_max (test_contract.ContractTests) ... ok
+test_partial_rank_endpoint (test_contract.ContractTests) ... ok
+test_qualification_budget (test_contract.ContractTests) ... ok
+test_qualification_cpu_reference_count (test_contract.ContractTests) ... ok
+test_rank_not_multirank (test_contract.ContractTests) ... ok
+test_rank_too_small (test_contract.ContractTests) ... ok
+test_ratio_is_not_mean_of_ratios (test_contract.ContractTests) ... ok
+test_single_cpu_alias (test_contract.ContractTests) ... ok
+test_suite_counts (test_contract.ContractTests) ... ok
+test_uncertainty_deterministic (test_contract.ContractTests) ... ok
+test_width_count (test_contract.ContractTests) ... ok
+test_write_once (test_contract.ContractTests) ... ok
+test_archive_root_roundtrip (test_receipts.ReceiptTests) ... ok
+test_archive_roundtrip (test_receipts.ReceiptTests) ... ok
+test_freeze_detects_suite_change (test_receipts.ReceiptTests) ... ok
+test_full_synthetic_readout (test_receipts.ReceiptTests) ... ok
+test_mismatched_issued_sidecar_raises (test_receipts.ReceiptTests) ... ok
+test_missing_issued_sidecar_raises (test_receipts.ReceiptTests) ... ok
+test_warmup_and_unsupported_sidecar_readout (test_receipts.ReceiptTests) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 0.653s
+
+OK
+Archived 1 files to /tmp/tmpxlyur9pr/archive.tar.gz
+Archived 1 files to /tmp/tmp1xyuricz/archive.tar.gz
