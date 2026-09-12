@@ -9,6 +9,10 @@ def main():
     scripts = [
         "figures/fig01_tasklets.py",
         "figures/fig02_dpus.py",
+        "figures/fig03_ablation.py",
+        "figures/fig04_quantization.py",
+        "figures/fig05_path_selection.py",
+        "figures/fig06_final_cpu.py",
     ]
     for script in scripts:
         subprocess.run([sys.executable, str(here / script)], check=True)
