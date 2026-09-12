@@ -2104,7 +2104,9 @@ for c in manifest['cases']:
     # 8. Final Readout Generation
     print("[all] Stage 6: Running readout...")
     readout_dir = loc_work / "readout"
-    if not readout_dir.exists():
+    if not (readout_dir / "report.md").exists():
+        if readout_dir.exists():
+            shutil.rmtree(readout_dir)
         subprocess.run([sys.executable, str(HERE / "readout.py"), "--campaign", str(loc_work), "--output", str(readout_dir)], check=True)
         shutil.copytree(readout_dir, archive_A / "readout", dirs_exist_ok=True)
         shutil.copytree(readout_dir, archive_B / "readout", dirs_exist_ok=True)

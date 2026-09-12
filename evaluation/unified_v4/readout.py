@@ -23,6 +23,7 @@ import protocol_core as pc
 FAMILIES = pc.FAMILIES
 FP = pc.FP
 I8 = pc.I8
+FROZEN_IMPLEMENTATION = "f6b570a98a610d41b5b16401a42ce12a94042d38"
 
 
 def require(ok: bool, message: str) -> None:
