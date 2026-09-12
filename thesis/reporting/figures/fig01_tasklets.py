@@ -62,7 +62,8 @@ def main():
                     color="#0072B2", marker="o", markersize=2.4, linewidth=1.0,
                     elinewidth=0.55, capsize=1.5, capthick=0.55, zorder=3)
         ax.axhline(1, color="#888888", linestyle="--", linewidth=0.55, zorder=2)
-        ax.set_title(f"({letter}) {title} ($n={qubits}$)", loc="left", pad=7)
+        ax.set_title(rf"$\mathbf{{{letter}}}$  {title}", loc="left", pad=7)
+        ax.set_title(f"{qubits} qubits", loc="right", fontsize=7.5, pad=7)
         ax.set_xlim(0.5, 24.5)
         ax.set_ylim(0.5, 5.0)
         ax.set_xticks([1, 4, 8, 12, 16, 20, 24])
