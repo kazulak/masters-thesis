@@ -167,7 +167,19 @@ def synthesize_readout(campaign_dir: Path, output_dir: Path) -> None:
 
     # All observations
     observations = joined_cal_rows + joined_final_rows
-    write_csv(output_dir / "observations.csv", observations)
+
+    def strip_large_facts(obj: object) -> object:
+        if isinstance(obj, dict):
+            return {
+                k: strip_large_facts(v)
+                for k, v in obj.items()
+                if k not in ("backend_facts", "numeric_facts", "terminal_facts", "native_stdout", "stdout")
+            }
+        elif isinstance(obj, list):
+            return [strip_large_facts(x) for x in obj]
+        return obj
+
+    write_csv(output_dir / "observations.csv", [strip_large_facts(r) for r in observations])
 
     # 2. Coverage
     coverage_map = defaultdict(lambda: {
