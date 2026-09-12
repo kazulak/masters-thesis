@@ -6,7 +6,10 @@ import sys
 
 def main():
     here = Path(__file__).resolve().parent
-    scripts = ["figures/fig01_tasklets.py"]
+    scripts = [
+        "figures/fig01_tasklets.py",
+        "figures/fig02_dpus.py",
+    ]
     for script in scripts:
         subprocess.run([sys.executable, str(here / script)], check=True)
 
